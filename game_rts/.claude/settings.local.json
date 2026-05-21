@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const fs=require\\('fs'\\); try{new Function\\(fs.readFileSync\\('app.js','utf8'\\)\\); console.log\\('syntax OK'\\)}catch\\(e\\){console.error\\('ERROR:',e.message\\)}\")",
+      "Bash(python3 -m http.server 8090)",
+      "Bash(open http://localhost:8090)"
+    ]
+  }
+}

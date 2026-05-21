@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0a0a12" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Simple RTS</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="portrait-warning">
+    <div class="rotate-icon">&#8635;</div>
+    <p>กรุณาหมุนหน้าจอเป็นแนวนอน</p>
+  </div>
+
+  <div id="app">
+    <div id="canvas-wrapper">
+      <canvas id="gameCanvas" width="960" height="640"></canvas>
+      <canvas id="threeCanvas" width="960" height="640"></canvas>
+      <div id="unit-monitor"></div>
+      <div id="loading-screen">Loading…</div>
+      <div id="gameover-overlay">
+        <div id="gameover-body"></div>
+      </div>
+      <div id="timer-block">
+        <span id="wave-label">WAVE 1</span>
+        <span id="timer-label">TIME</span>
+        <span id="timer">3:00</span>
+        <div id="hp-gauge-wrap">
+          <span id="hp-gauge-p">0</span>
+          <div id="hp-gauge">
+            <div id="hp-gauge-fill-p"></div>
+            <div id="hp-gauge-fill-n"></div>
+            <div id="hp-gauge-fill-e"></div>
+          </div>
+          <span id="hp-gauge-e">0</span>
+        </div>
+      </div>
+    </div>
+    <div id="hud">
+      <span id="cost-display">Cost: 10</span>
+      <span id="unit-count">Units: 0/5</span>
+      <div id="unit-buttons"><!-- populated from units.json --></div>
+      <span class="btn-divider"></span>
+      <div id="building-buttons"><!-- populated from buildings.json --></div>
+      <span id="hint-text">เลือกยูนิต แล้วแตะจุดเขียว</span>
+    </div>
+  </div>
+
+  <script type="module" src="renderer.js"></script>
+  <script defer src="app.js"></script>
+</body>
+</html>

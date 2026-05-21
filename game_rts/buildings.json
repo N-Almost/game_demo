@@ -1,0 +1,26 @@
+{
+  "buildings": [
+    {
+      "id": "farm",
+      "name": "Farm",
+      "description": "+2 cost/s",
+      "cost": 5,
+      "maxHp": 200,
+      "radius": 12,
+      "effect": "income",
+      "effectValue": 2,
+      "color": "#d4af37"
+    },
+    {
+      "id": "barracks",
+      "name": "Barracks",
+      "description": "+2 unit cap",
+      "cost": 8,
+      "maxHp": 150,
+      "radius": 12,
+      "effect": "maxUnits",
+      "effectValue": 2,
+      "color": "#6b9fe4"
+    }
+  ]
+}

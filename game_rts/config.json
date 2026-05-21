@@ -1,0 +1,5 @@
+{
+  "startCost": 10,
+  "matchDuration": 180,
+  "suddenDeathDuration": 30
+}

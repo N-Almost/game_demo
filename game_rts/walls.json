@@ -1,0 +1,11 @@
+{
+  "walls": [
+    { "id": "wall_center",   "x": 463, "y": 260, "width": 34, "height": 120 },
+    { "id": "wall_tl_lane",  "x": 288, "y": 138, "width": 79, "height": 29  },
+    { "id": "wall_tr_lane",  "x": 545, "y": 138, "width": 79, "height": 29  },
+    { "id": "wall_bl_lane",  "x": 288, "y": 474, "width": 79, "height": 29  },
+    { "id": "wall_br_lane",  "x": 545, "y": 474, "width": 79, "height": 29  },
+    { "id": "wall_ml_flank", "x": 331, "y": 296, "width": 55, "height": 41  },
+    { "id": "wall_mr_flank", "x": 558, "y": 296, "width": 55, "height": 41  }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "startCost": 10,
+  "killReward": 2,
+  "maxUnits": 5,
+  "spawnIntervals": [2.0, 1.5, 1.2],
+  "waveScaling": {
+    "maxUnitsPerWave": 0.5,
+    "spawnIntervalReduction": 0.08,
+    "minSpawnInterval": 0.5,
+    "hpPerWave": 0.15,
+    "damagePerWave": 0.10,
+    "speedPerWave": 0.02
+  }
+}

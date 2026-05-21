@@ -1,0 +1,10 @@
+{
+  "name": "Simple RTS",
+  "short_name": "RTS",
+  "description": "Simple RTS drag-and-drop game",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0a0a12",
+  "theme_color": "#0a0a12",
+  "start_url": "."
+}

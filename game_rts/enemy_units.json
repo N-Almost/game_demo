@@ -1,0 +1,43 @@
+{
+  "units": [
+    {
+      "id": "soldier",
+      "ability": "armor",
+      "abilityValue": 0.2,
+      "maxHp": 100,
+      "radius": 10,
+      "speed": 60,
+      "range": 140,
+      "damage": 30,
+      "attackRate": 1.0,
+      "projectileSpeed": 320,
+      "color": "#c44040"
+    },
+    {
+      "id": "heavy",
+      "ability": "splash",
+      "abilityValue": 50,
+      "maxHp": 150,
+      "radius": 12,
+      "speed": 35,
+      "range": 160,
+      "damage": 50,
+      "attackRate": 0.6,
+      "projectileSpeed": 280,
+      "color": "#a03030"
+    },
+    {
+      "id": "fast",
+      "ability": "dodge",
+      "abilityValue": 0.35,
+      "maxHp": 60,
+      "radius": 8,
+      "speed": 80,
+      "range": 100,
+      "damage": 20,
+      "attackRate": 1.3,
+      "projectileSpeed": 360,
+      "color": "#d46060"
+    }
+  ]
+}
