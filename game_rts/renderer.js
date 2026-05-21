@@ -33,6 +33,9 @@ const animClips      = {};
 // Wall GLB cache — keyed by model name (e.g. "wall_stone")
 const wallModels = {};
 
+// Shared GLTFLoader instance (declared here so loadWallModels can use it)
+const loader = new GLTFLoader();
+
 // Unit config map — populated from units.json via init()
 let unitCfgMap = {};
 
@@ -574,7 +577,6 @@ function modelTargetH(type) {
 }
 
 async function loadModels() {
-  const loader = new GLTFLoader();
   await Promise.allSettled(
     Object.keys(unitCfgMap).map(type =>
       loader.loadAsync(`models/${type}.glb`)
@@ -651,3 +653,4 @@ function getGroundIntersect(clientX, clientY) {
 }
 
 window.Renderer = { init, render, getGroundIntersect };
+window.dispatchEvent(new CustomEvent('renderer-ready'));

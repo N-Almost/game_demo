@@ -283,6 +283,58 @@ html, body {
   transform: scale(0.93);
 }
 
+/* Cooldown overlay — covers button from top, drains downward */
+.unit-btn-cooldown {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.unit-btn-cooldown.active {
+  display: flex;
+}
+
+.unit-btn-cooldown-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.unit-btn-cooldown-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.unit-btn-cooldown-text {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.unit-btn-cooldown-label {
+  font-size: 7px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
 #timer-block {
   position: absolute;
   top: 12px;
