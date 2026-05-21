@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+let _SkeletonUtils = null;
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 const BOUNDARY    = { x: 120, y: 20, width: 720, height: 600 };
 const SPAWN_RADIUS = 18;
@@ -263,13 +265,50 @@ function buildPools() {
   }
 }
 
+// Deep-clone a GLB scene and properly rebind any SkinnedMesh skeletons.
+// SkeletonUtils.clone() handles this natively; the manual path below is a fallback
+// so the game works even when the CDN import fails.
+function _cloneModel(template) {
+  if (_SkeletonUtils) return _SkeletonUtils.clone(template);
+
+  const clone = template.clone(true);
+
+  // .clone(true) gives each SkinnedMesh a new bone hierarchy but leaves the
+  // skeleton property pointing at the *original* bones.  Re-bind each
+  // SkinnedMesh to the corresponding cloned bones (matched by name).
+  const clonedBones = new Map();
+  clone.traverse(n => { if (n.isBone) clonedBones.set(n.name, n); });
+
+  clone.traverse(node => {
+    if (!node.isSkinnedMesh) return;
+    const origSkel  = node.skeleton;
+    const newBones  = origSkel.bones.map(b => clonedBones.get(b.name) ?? b);
+    // Re-use the original boneInverses so the bind pose is preserved exactly.
+    // Recalculating them from unupdated world matrices would give wrong deformation.
+    const newInvs   = origSkel.boneInverses.map(m => m.clone());
+    node.bind(new THREE.Skeleton(newBones, newInvs), node.bindMatrix);
+  });
+
+  return clone;
+}
+
 // ── Unit mesh factory ─────────────────────────────────────────────────────────
 function makeUnitMesh(type, isEnemy) {
   if (modelTemplates[type]) {
-    const modelClone = modelTemplates[type].clone();
-    const clips      = animClips[type] || {};
-    const mixer      = new THREE.AnimationMixer(modelClone);
-    if (clips.idle) mixer.clipAction(clips.idle).play();
+    const modelClone = _cloneModel(modelTemplates[type]);
+
+    // SkinnedMesh bounding spheres are often stale after cloning — disable culling so the
+    // mesh is always drawn regardless of where Three.js thinks it is.
+    modelClone.traverse(node => {
+      node.visible       = true;
+      node.frustumCulled = false;
+      if (node.isMesh || node.isSkinnedMesh) node.castShadow = true;
+    });
+
+    const clips       = animClips[type] || {};
+    const mixer       = new THREE.AnimationMixer(modelClone);
+    const initialClip = clips.idle ? 'idle' : clips.walk ? 'walk' : (Object.keys(clips)[0] ?? null);
+    if (initialClip) mixer.clipAction(clips[initialClip]).play();
 
     // Apply enemy tint
     if (isEnemy) {
@@ -295,7 +334,7 @@ function makeUnitMesh(type, isEnemy) {
     fgBar.position.y = hpY;
     wrapper.add(bgBar, fgBar);
 
-    wrapper.userData = { mixer, clips, currentClip: 'idle', isEnemy, fgBar, fgCvs, fgCtx, fgTex };
+    wrapper.userData = { mixer, clips, currentClip: initialClip, isEnemy, fgBar, fgCvs, fgCtx, fgTex };
     return wrapper;
   }
   return makeFallbackMesh(type, isEnemy);
@@ -311,47 +350,61 @@ function makeFallbackMesh(type, isEnemy) {
   const skinHex = isEnemy ? 0xc47a6a : 0xf5c8a0;
   const legHex  = isEnemy ? 0x6b2a2a : 0x2a2a5a;
 
-  const group  = new THREE.Group();
-  const bodyM  = new THREE.MeshLambertMaterial({ color: bodyHex });
-  const skinM  = new THREE.MeshLambertMaterial({ color: skinHex });
-  const legM   = new THREE.MeshLambertMaterial({ color: legHex  });
+  const group = new THREE.Group();
+  const bodyM = new THREE.MeshLambertMaterial({ color: bodyHex });
+  const skinM = new THREE.MeshLambertMaterial({ color: skinHex });
+  const legM  = new THREE.MeshLambertMaterial({ color: legHex  });
 
-  // Legs
+  // Leg pivots sit at hip height — rotating the pivot swings the leg from the hip
   const legGeo = new THREE.CylinderGeometry(R * 0.20, R * 0.22, H * 0.36, 6);
-  for (const ox of [-0.28, 0.28]) {
-    const leg = new THREE.Mesh(legGeo, legM);
-    leg.position.set(R * ox, H * 0.18, 0);
-    group.add(leg);
-  }
+  const legPivots = [-0.28, 0.28].map(ox => {
+    const pivot = new THREE.Group();
+    pivot.position.set(R * ox, H * 0.36, 0);
+    const mesh = new THREE.Mesh(legGeo, legM);
+    mesh.position.y = -H * 0.18;
+    pivot.add(mesh);
+    group.add(pivot);
+    return pivot;
+  });
 
-  // Body (tapered cylinder: wider shoulders)
+  // Body
   const body = new THREE.Mesh(
     new THREE.CylinderGeometry(R * 0.54, R * 0.34, H * 0.44, 8), bodyM
   );
-  body.position.y = H * 0.54;
+  const baseBodyY = H * 0.54;
+  body.position.y = baseBodyY;
   group.add(body);
 
-  // Arms (angled outward)
+  // Arm pivots sit at shoulder height
   const armGeo = new THREE.CylinderGeometry(R * 0.17, R * 0.17, H * 0.30, 6);
-  for (const [ox, rz] of [[-R * 0.76, 0.18], [R * 0.76, -0.18]]) {
-    const arm = new THREE.Mesh(armGeo, bodyM);
-    arm.position.set(ox, H * 0.52, 0);
-    arm.rotation.z = rz;
-    group.add(arm);
-  }
+  const armPivots = [[-R * 0.76, 0.18], [R * 0.76, -0.18]].map(([ox, rz]) => {
+    const pivot = new THREE.Group();
+    pivot.position.set(ox, H * 0.76, 0);
+    const mesh = new THREE.Mesh(armGeo, bodyM);
+    mesh.position.y = -H * 0.15;
+    mesh.rotation.z = rz;
+    pivot.add(mesh);
+    group.add(pivot);
+    return pivot;
+  });
 
   // Head
   const head = new THREE.Mesh(new THREE.SphereGeometry(R * 0.44, 8, 8), skinM);
-  head.position.y = H * 0.36 + H * 0.44 + R * 0.44;
+  const baseHeadY = H * 0.76 + R * 0.44;
+  head.position.y = baseHeadY;
   group.add(head);
 
-  // HP bar sprites (shared helper)
-  const hpY = head.position.y + R * 0.44 + 5;
+  const hpY = baseHeadY + R * 0.44 + 5;
   const { bgBar, fgBar, fgCvs, fgCtx, fgTex } = makeHpBarSprites(R, isEnemy);
   bgBar.position.y = hpY;
   fgBar.position.y = hpY;
   group.add(bgBar, fgBar);
-  group.userData = { fgBar, fgCvs, fgCtx, fgTex, isEnemy };
+
+  group.userData = {
+    fgBar, fgCvs, fgCtx, fgTex, isEnemy,
+    parts: { legPivots, armPivots, body, head, baseBodyY, baseHeadY, H, R },
+    animTime: 0,
+  };
   return group;
 }
 
@@ -514,7 +567,14 @@ function syncUnits(units, enemies, delta) {
       mesh.position.set(u.x, 0, u.y);
 
       const spd = Math.hypot(u.vx || 0, u.vy || 0);
-      if (spd > 1) mesh.rotation.y = -Math.atan2(u.vx, u.vy);
+      if (spd > 1) {
+        const target = Math.atan2(u.vx, u.vy);
+        let diff = target - mesh.rotation.y;
+        // Wrap diff to [-π, π] so we always rotate the short way round
+        while (diff >  Math.PI) diff -= Math.PI * 2;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        mesh.rotation.y += diff * Math.min(1, delta * 14);
+      }
 
       updateHpBar(mesh, u.hp, u.maxHp);
       advanceAnimation(mesh, u, delta);
@@ -522,19 +582,67 @@ function syncUnits(units, enemies, delta) {
   }
 }
 
+function _animateFallback(mesh, unit, delta) {
+  const { parts, animTime } = mesh.userData;
+  if (!parts) return;
+  const t = animTime + delta;
+  mesh.userData.animTime = t;
+
+  const { legPivots, armPivots, body, head, baseBodyY, baseHeadY } = parts;
+  const spd       = Math.hypot(unit.vx || 0, unit.vy || 0);
+  const attacking = unit.attackTimer > 0 && unit.attackTimer < 0.45;
+
+  if (attacking) {
+    // Rapid arm thrust — both arms swing forward together
+    const thrust = Math.sin(t * 18) * 0.55;
+    armPivots[0].rotation.x = -0.4 + thrust;
+    armPivots[1].rotation.x = -0.4 + thrust;
+    legPivots[0].rotation.x = 0;
+    legPivots[1].rotation.x = 0;
+    body.position.y = baseBodyY + Math.sin(t * 18) * 0.8;
+    head.rotation.x = 0;
+  } else if (spd > 8) {
+    // Walk: legs alternate, arms counter-swing, body bobs
+    const swing = Math.sin(t * 7);
+    legPivots[0].rotation.x =  swing * 0.55;
+    legPivots[1].rotation.x = -swing * 0.55;
+    armPivots[0].rotation.x = -swing * 0.40;
+    armPivots[1].rotation.x =  swing * 0.40;
+    body.position.y  = baseBodyY + Math.abs(swing) * 1.2;
+    head.rotation.x  = 0;
+    head.position.y  = baseHeadY + Math.abs(swing) * 0.5;
+  } else {
+    // Idle: gentle breathing bob
+    const breath = Math.sin(t * 1.8);
+    legPivots[0].rotation.x = 0;
+    legPivots[1].rotation.x = 0;
+    armPivots[0].rotation.x = breath * 0.06;
+    armPivots[1].rotation.x = breath * 0.06;
+    body.position.y = baseBodyY + breath * 0.6;
+    head.position.y = baseHeadY + breath * 0.4;
+    head.rotation.x = breath * 0.04;
+  }
+}
+
 function advanceAnimation(mesh, unit, delta) {
   const { mixer, clips, currentClip } = mesh.userData;
-  if (!mixer || !clips) return;
-  const spd    = Math.hypot(unit.vx || 0, unit.vy || 0);
-  const target = clips.attack && unit.attackTimer > 0 && unit.attackTimer < 0.3 ? 'attack'
-               : spd > 8 && clips.walk ? 'walk'
-               : 'idle';
-  if (target !== currentClip && clips[target]) {
-    mixer.clipAction(clips[currentClip])?.fadeOut(0.15);
-    mixer.clipAction(clips[target]).reset().fadeIn(0.15).play();
-    mesh.userData.currentClip = target;
+
+  if (mixer && clips) {
+    // GLB skeletal animation
+    const spd    = Math.hypot(unit.vx || 0, unit.vy || 0);
+    const target = clips.attack && unit.attackTimer > 0 && unit.attackTimer < 0.3 ? 'attack'
+                 : spd > 8 ? 'walk'
+                 : clips.idle ? 'idle' : 'walk';
+    if (target !== currentClip && clips[target]) {
+      if (currentClip && clips[currentClip]) mixer.clipAction(clips[currentClip]).fadeOut(0.15);
+      mixer.clipAction(clips[target]).reset().fadeIn(0.15).play();
+      mesh.userData.currentClip = target;
+    }
+    mixer.update(delta);
+  } else {
+    // Procedural animation for fallback mesh
+    _animateFallback(mesh, unit, delta);
   }
-  mixer.update(delta);
 }
 
 function syncProjectiles(projectiles) {
@@ -608,11 +716,35 @@ function buildClipMap(animations) {
   const map = {};
   for (const clip of animations) {
     const n = clip.name.toLowerCase();
-    if (n.includes('idle'))                         map.idle   = clip;
-    if (n.includes('walk') || n.includes('run'))   map.walk   = clip;
-    if (n.includes('attack'))                       map.attack = clip;
+    const s = _stripRootMotion(clip);
+    if (n.includes('idle'))                       map.idle   = s;
+    if (n.includes('walk') || n.includes('run'))  map.walk   = s;
+    if (n.includes('attack') || n.includes('hit') || n.includes('punch') || n.includes('slash')) map.attack = s;
+  }
+
+  // Fallback: if keywords matched nothing, assign by position (walk=first, attack=second)
+  if (!map.idle && !map.walk && !map.attack && animations.length > 0) {
+    console.warn('[Renderer] No keyword match — raw names:', animations.map(a => a.name));
+    map.walk = _stripRootMotion(animations[0]);
+    if (animations.length > 1) map.attack = _stripRootMotion(animations[1]);
   }
   return map;
+}
+
+// Remove position/scale tracks on the scene root (root-motion) so animated models
+// don't drift away from their game-logic position.
+function _stripRootMotion(clip) {
+  const kept = clip.tracks.filter(t => {
+    const parts = t.name.split('.');
+    const prop  = parts[parts.length - 1];
+    // Keep rotation always; drop position & scale on the root node (index 0 or named 'root')
+    if (prop === 'quaternion') return true;
+    const nodeName = parts[0].toLowerCase();
+    if ((nodeName === '' || nodeName === 'root' || nodeName === 'armature') && prop === 'position') return false;
+    return true;
+  });
+  if (kept.length === clip.tracks.length) return clip;
+  return new THREE.AnimationClip(clip.name, clip.duration, kept);
 }
 
 // Target height for auto-scaling GLB: derived from unit radius in config
@@ -621,6 +753,13 @@ function modelTargetH(type) {
 }
 
 async function loadModels() {
+  try {
+    const mod = await import('three/addons/utils/SkeletonUtils.js');
+    _SkeletonUtils = mod.SkeletonUtils;
+  } catch (e) {
+    console.warn('[Renderer] SkeletonUtils unavailable, using .clone() fallback');
+  }
+
   await Promise.allSettled(
     Object.keys(unitCfgMap).map(type =>
       loader.loadAsync(`models/${type}.glb`)
@@ -639,8 +778,8 @@ async function loadModels() {
           }
 
           modelTemplates[type] = root;
-          animClips[type]      = buildClipMap(gltf.animations);
-          console.log(`[Renderer] Loaded ${type}.glb — clips:`, Object.keys(animClips[type]));
+          animClips[type] = buildClipMap(gltf.animations);
+          console.log(`[Renderer] Loaded ${type}.glb | raw clips: [${gltf.animations.map(a => a.name).join(', ')}] | mapped: [${Object.keys(animClips[type]).join(', ')}]`);
         })
         .catch(err => console.warn(`[Renderer] ${type}.glb not loaded, using fallback.`, err))
     )

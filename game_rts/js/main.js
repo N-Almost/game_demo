@@ -14,9 +14,13 @@ const loadingEl = document.getElementById('loading-screen');
 let last = performance.now();
 function loop(ts) {
   const dt = Math.min((ts - last) / 1000, 0.05);
-  update(dt);
-  render();
   last = ts;
+  try {
+    update(dt);
+    render();
+  } catch (e) {
+    console.error('[loop]', e);
+  }
   requestAnimationFrame(loop);
 }
 
