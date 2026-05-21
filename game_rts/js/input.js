@@ -71,7 +71,7 @@ function _handleTap(clientX, clientY) {
   if (state.gameOver) {
     const next = state.winner === 'player' ? cfg.currentWave + 1 : 1;
     localStorage.setItem('rts_wave', next);
-    location.reload();
+    location.href = 'menu.html';
     return;
   }
   if (!selectedUnitType && !selectedBuildingType) return;

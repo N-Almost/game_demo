@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0a0a12" />
+  <title>Simple RTS</title>
+  <style>
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #0a0a12;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, sans-serif;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* Portrait warning */
+    #portrait-warning {
+      display: none;
+      position: fixed; inset: 0;
+      background: #0a0a12;
+      z-index: 100;
+      flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #fff; text-align: center; gap: 16px;
+      font-size: 1.1rem; line-height: 1.6;
+    }
+    .rotate-icon { font-size: 3.5rem; }
+    @media (orientation: portrait) {
+      #portrait-warning { display: flex; }
+      #menu { display: none; }
+    }
+
+    /* Background layer with subtle grid */
+    #menu {
+      width: 100%; height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated grid background */
+    #menu::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridScroll 20s linear infinite;
+    }
+    @keyframes gridScroll {
+      from { background-position: 0 0; }
+      to   { background-position: 60px 60px; }
+    }
+
+    /* Glow blobs */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.18;
+      pointer-events: none;
+    }
+    .blob-1 { width: 420px; height: 420px; background: #4a6ef5; top: -80px; left: -60px; }
+    .blob-2 { width: 360px; height: 360px; background: #e05555; bottom: -60px; right: -40px; }
+    .blob-3 { width: 260px; height: 260px; background: #ffd86b; bottom: 20%; left: 30%; opacity: 0.1; }
+
+    /* Center card */
+    .card {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      padding: 48px 56px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      min-width: 340px;
+    }
+
+    /* Logo / title */
+    .title-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .title-eyebrow {
+      font-size: 11px; font-weight: 700; letter-spacing: 3px;
+      color: rgba(255,255,255,0.35); text-transform: uppercase;
+    }
+    .title-main {
+      font-size: 42px; font-weight: 900; letter-spacing: -1.5px;
+      color: #fff;
+      line-height: 1;
+    }
+    .title-main span { color: #6be07a; }
+    .title-sub {
+      font-size: 13px; font-weight: 500;
+      color: rgba(255,255,255,0.38); letter-spacing: 0.3px;
+    }
+
+    /* Wave badge */
+    .wave-badge {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 14px;
+      background: rgba(255,216,107,0.1);
+      border: 1px solid rgba(255,216,107,0.2);
+      border-radius: 99px;
+    }
+    .wave-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #ffd86b;
+      box-shadow: 0 0 6px #ffd86b;
+    }
+    .wave-text {
+      font-size: 12px; font-weight: 700; letter-spacing: 1.5px;
+      color: #ffd86b; text-transform: uppercase;
+    }
+
+    /* Buttons */
+    .btn-group {
+      display: flex; flex-direction: column; align-items: stretch;
+      gap: 10px; width: 100%;
+    }
+
+    .btn-start {
+      padding: 15px 32px;
+      background: #6be07a;
+      color: #0a1a0d;
+      font-size: 16px; font-weight: 800; letter-spacing: 0.5px;
+      border: none; border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.15s, background 0.15s;
+      box-shadow: 0 4px 24px rgba(107,224,122,0.35);
+      touch-action: manipulation;
+    }
+    .btn-start:hover  { background: #80ea8e; box-shadow: 0 6px 32px rgba(107,224,122,0.5); }
+    .btn-start:active { transform: scale(0.96); }
+
+    .btn-reset {
+      padding: 11px 32px;
+      background: transparent;
+      color: rgba(255,255,255,0.35);
+      font-size: 12px; font-weight: 600; letter-spacing: 0.3px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      touch-action: manipulation;
+    }
+    .btn-reset:hover  { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.22); }
+    .btn-reset:active { transform: scale(0.97); }
+
+    /* Stats row */
+    .stats-row {
+      display: flex; gap: 28px; align-items: center;
+    }
+    .stat {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .stat-val {
+      font-size: 22px; font-weight: 800; color: #fff;
+      font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .stat-label {
+      font-size: 9px; font-weight: 600; letter-spacing: 1.5px;
+      color: rgba(255,255,255,0.3); text-transform: uppercase;
+    }
+    .stat-divider {
+      width: 1px; height: 28px; background: rgba(255,255,255,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div id="portrait-warning">
+    <div class="rotate-icon">&#8635;</div>
+    <p>กรุณาหมุนหน้าจอเป็นแนวนอน</p>
+  </div>
+
+  <div id="menu">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <div class="card">
+      <div class="title-wrap">
+        <div class="title-eyebrow">Strategy Game</div>
+        <div class="title-main">Simple <span>RTS</span></div>
+        <div class="title-sub">ยึด spawn point ให้ได้มากที่สุด</div>
+      </div>
+
+      <div class="wave-badge">
+        <div class="wave-dot"></div>
+        <div class="wave-text" id="wave-display">Wave 1</div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-val">3:00</div>
+          <div class="stat-label">Match Time</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <div class="stat-val">12</div>
+          <div class="stat-label">Spawn Points</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <div class="stat-val">3</div>
+          <div class="stat-label">Unit Types</div>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-start" id="btn-start">▶ เริ่มเกม</button>
+        <button class="btn-reset" id="btn-reset">รีเซ็ต Wave กลับ Wave 1</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const wave = parseInt(localStorage.getItem('rts_wave') || '1', 10);
+    document.getElementById('wave-display').textContent = `Wave ${wave}`;
+
+    document.getElementById('btn-start').addEventListener('click', () => {
+      location.href = 'index.html';
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      localStorage.removeItem('rts_wave');
+      document.getElementById('wave-display').textContent = 'Wave 1';
+    });
+  </script>
+</body>
+</html>
