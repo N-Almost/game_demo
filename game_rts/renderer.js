@@ -393,6 +393,8 @@ function updateHpBar(mesh, hp, maxHp) {
 
 // ── Building mesh factory ─────────────────────────────────────────────────────
 function makeBuildingMesh(building) {
+  if (building.effect === 'turret') return _makeTurretMesh(building);
+
   const R         = building.radius ?? 12;
   const H         = R * 2.2;
   const mainColor = new THREE.Color(building.color ?? '#d4af37');
@@ -417,6 +419,48 @@ function makeBuildingMesh(building) {
   group.add(roof);
 
   const hpY = H + H * 0.45 + 7;
+  const { bgBar, fgBar, fgCtx, fgTex } = makeHpBarSprites(R, false);
+  bgBar.position.y = hpY;
+  fgBar.position.y = hpY;
+  group.add(bgBar, fgBar);
+
+  group.userData = { fgBar, fgCtx, fgTex, isEnemy: false };
+  return group;
+}
+
+function _makeTurretMesh(building) {
+  const R         = building.radius ?? 10;
+  const accentColor = new THREE.Color(building.color ?? '#e05555');
+  const group     = new THREE.Group();
+
+  // Base platform
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(R * 1.1, R * 1.3, R * 0.7, 8),
+    new THREE.MeshLambertMaterial({ color: 0x2e2e46 })
+  );
+  base.position.y = R * 0.35;
+  base.castShadow = true;
+  group.add(base);
+
+  // Turret head
+  const head = new THREE.Mesh(
+    new THREE.BoxGeometry(R * 1.4, R * 0.9, R * 1.4),
+    new THREE.MeshLambertMaterial({ color: accentColor })
+  );
+  head.position.y = R * 1.15;
+  head.castShadow = true;
+  group.add(head);
+
+  // Gun barrel (pointing toward top of screen in iso = -Z direction)
+  const barrel = new THREE.Mesh(
+    new THREE.CylinderGeometry(R * 0.15, R * 0.15, R * 1.6, 6),
+    new THREE.MeshLambertMaterial({ color: 0x1a1a2e })
+  );
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(0, R * 1.15, -R * 1.1);
+  group.add(barrel);
+
+  const hpY = R * 1.6 + 10;
   const { bgBar, fgBar, fgCtx, fgTex } = makeHpBarSprites(R, false);
   bgBar.position.y = hpY;
   fgBar.position.y = hpY;
@@ -499,7 +543,7 @@ function syncProjectiles(projectiles) {
   for (let i = 0; i < n; i++) {
     const p = projectiles[i];
     projectilePool[i].position.set(p.x, 7, p.y);
-    projectilePool[i].material.color.setHex(p.owner === 'player' ? 0xffd86b : 0xff6b6b);
+    projectilePool[i].material.color.setHex(p.fromTurret ? 0xff8c42 : p.owner === 'player' ? 0xffd86b : 0xff6b6b);
     projectilePool[i].visible = true;
   }
 }

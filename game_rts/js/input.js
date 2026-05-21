@@ -111,6 +111,12 @@ function _placeBuilding(type, sp) {
     owner: 'player', spawnRef: sp,
     color: proto.color, radius: proto.radius ?? 12,
     effect: proto.effect, effectValue: proto.effectValue,
+    // turret-specific (undefined for non-turrets, ignored by non-turret logic)
+    range:           proto.range,
+    damage:          proto.damage,
+    attackRate:      proto.attackRate,
+    projectileSpeed: proto.projectileSpeed,
+    attackTimer:     0,
   });
   return true;
 }

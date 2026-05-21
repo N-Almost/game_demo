@@ -1,6 +1,7 @@
 import { SPAWN_RADIUS }                             from './constants.js';
 import { state, SPAWN_POINTS, addDamageNumber, addExplosion } from './state.js';
 import { cfg }                                      from './config.js';
+import { hasLOS }                                   from './helpers.js';
 
 export function updateProjectiles(dt) {
   for (let pi = state.projectiles.length - 1; pi >= 0; pi--) {
@@ -16,6 +17,36 @@ export function updateProjectiles(dt) {
     if (_hitSpawnPoint(p, pi))                  continue;
     if (p.owner === 'player' && _hitEnemy(p, pi)) continue;
     if (p.owner === 'enemy'  && _hitUnit(p, pi))  continue;
+  }
+}
+
+export function updateTurrets(dt) {
+  for (const b of state.buildings) {
+    if (b.owner !== 'player' || b.effect !== 'turret') continue;
+
+    if (b.attackTimer > 0) { b.attackTimer -= dt; continue; }
+
+    // Find nearest visible enemy in range
+    let target = null, nearest = Infinity;
+    for (const e of state.enemies) {
+      const d = Math.hypot(e.x - b.x, e.y - b.y);
+      if (d < b.range && d < nearest && hasLOS(b.x, b.y, e.x, e.y)) {
+        target = e; nearest = d;
+      }
+    }
+    if (!target) continue;
+
+    const dx = target.x - b.x, dy = target.y - b.y;
+    const d  = Math.hypot(dx, dy) || 1;
+    state.projectiles.push({
+      x: b.x, y: b.y,
+      vx: (dx / d) * b.projectileSpeed,
+      vy: (dy / d) * b.projectileSpeed,
+      radius: 4, damage: b.damage, owner: 'player',
+      ability: null, abilityValue: 0,
+      fromTurret: true,
+    });
+    b.attackTimer = 1 / Math.max(0.0001, b.attackRate);
   }
 }
 

@@ -21,6 +21,21 @@
       "effect": "maxUnits",
       "effectValue": 2,
       "color": "#6b9fe4"
+    },
+    {
+      "id": "turret",
+      "name": "Turret",
+      "description": "auto-attack range 200",
+      "cost": 14,
+      "maxHp": 120,
+      "radius": 10,
+      "effect": "turret",
+      "effectValue": 0,
+      "range": 200,
+      "damage": 22,
+      "attackRate": 1.2,
+      "projectileSpeed": 380,
+      "color": "#e05555"
     }
   ]
 }

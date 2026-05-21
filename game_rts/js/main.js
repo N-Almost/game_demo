@@ -4,7 +4,7 @@ import { buildUnitButtons, buildBuildingButtons, renderHUD }      from './ui.js'
 import { bindUnitButtons, bindBuildingButtons, setupCanvasInput, selectedUnitType, selectedBuildingType } from './input.js';
 import { updateUnits, spawnUnit, tickSpawnCooldowns }               from './units.js';
 import { updateEnemies, spawnEnemies }                             from './enemies.js';
-import { updateProjectiles, updateMeleeCombat }                    from './combat.js';
+import { updateProjectiles, updateMeleeCombat, updateTurrets }      from './combat.js';
 
 const canvas    = document.getElementById('gameCanvas');
 const loadingEl = document.getElementById('loading-screen');
@@ -29,6 +29,7 @@ function update(dt) {
   spawnEnemies(dt);
   updateUnits(dt);
   updateEnemies(dt);
+  updateTurrets(dt);
   updateProjectiles(dt);
   updateMeleeCombat(dt);
   _tickEffects(dt);
