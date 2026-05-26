@@ -59,25 +59,20 @@ function buildCamera() {
 
 // ── Lights ────────────────────────────────────────────────────────────────────
 function buildLights() {
-  // Hemisphere: warm sky, deep blue-purple ground bounce
-  scene.add(new THREE.HemisphereLight(0x90b0e0, 0x1a2040, 1.1));
+  // Paper style: bright flat ambient + very soft directional for subtle depth
+  scene.add(new THREE.AmbientLight(0xffffff, 1.6));
 
-  // Key light: warm golden-white, sharp shadows
-  const key = new THREE.DirectionalLight(0xffecc0, 1.9);
-  key.position.set(ISO_CX + 500, 700, ISO_CY - 400);
+  const key = new THREE.DirectionalLight(0xfff8f0, 0.55);
+  key.position.set(ISO_CX + 400, 800, ISO_CY - 300);
   key.castShadow            = true;
   key.shadow.mapSize.width  = 2048;
   key.shadow.mapSize.height = 2048;
   key.shadow.bias           = -0.0008;
+  key.shadow.opacity        = 0.18;
   const sc = key.shadow.camera;
   sc.left = -600; sc.right = 600; sc.top = 600; sc.bottom = -600;
   sc.near = 0.5;  sc.far = 3000;
   scene.add(key);
-
-  // Fill light: cool blue from opposite corner
-  const fill = new THREE.DirectionalLight(0x4060c8, 0.45);
-  fill.position.set(ISO_CX - 400, 250, ISO_CY + 500);
-  scene.add(fill);
 }
 
 // ── Ground ────────────────────────────────────────────────────────────────────
@@ -87,33 +82,26 @@ function _makeGroundTexture() {
   cvs.width = cvs.height = size;
   const ctx  = cvs.getContext('2d');
 
-  // Base
-  ctx.fillStyle = '#16202e';
+  // Dark base matching UI (#0a0a12)
+  ctx.fillStyle = '#0d0d18';
   ctx.fillRect(0, 0, size, size);
 
-  // Fine tactical grid
-  const fine = size / 16;
-  ctx.strokeStyle = 'rgba(80,130,220,0.18)';
-  ctx.lineWidth   = 0.8;
-  for (let i = 0; i <= 16; i++) {
-    ctx.beginPath(); ctx.moveTo(i * fine, 0);    ctx.lineTo(i * fine, size); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i * fine);    ctx.lineTo(size, i * fine); ctx.stroke();
+  // Fine grid — dim blue-white lines
+  const fine = size / 20;
+  ctx.strokeStyle = 'rgba(100,130,220,0.12)';
+  ctx.lineWidth   = 0.7;
+  for (let i = 0; i <= 20; i++) {
+    ctx.beginPath(); ctx.moveTo(i * fine, 0);  ctx.lineTo(i * fine, size); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * fine);  ctx.lineTo(size, i * fine); ctx.stroke();
   }
 
-  // Major grid every 4 fine cells
+  // Major grid — slightly brighter
   const major = size / 4;
-  ctx.strokeStyle = 'rgba(90,150,240,0.28)';
-  ctx.lineWidth   = 1.4;
+  ctx.strokeStyle = 'rgba(120,160,255,0.22)';
+  ctx.lineWidth   = 1.2;
   for (let i = 0; i <= 4; i++) {
-    ctx.beginPath(); ctx.moveTo(i * major, 0);   ctx.lineTo(i * major, size); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i * major);   ctx.lineTo(size, i * major); ctx.stroke();
-  }
-
-  // Diagonal accent lines (subtle, tactical feel)
-  ctx.strokeStyle = 'rgba(70,110,200,0.07)';
-  ctx.lineWidth   = 0.8;
-  for (let i = -size; i <= size * 2; i += major) {
-    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + size, size); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(i * major, 0); ctx.lineTo(i * major, size); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * major); ctx.lineTo(size, i * major); ctx.stroke();
   }
 
   return new THREE.CanvasTexture(cvs);
@@ -123,28 +111,28 @@ function buildGround() {
   // Main ground
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(BOUNDARY.width, BOUNDARY.height),
-    new THREE.MeshStandardMaterial({ map: _makeGroundTexture(), roughness: 0.95, metalness: 0 })
+    new THREE.MeshStandardMaterial({ map: _makeGroundTexture(), roughness: 1.0, metalness: 0, color: 0x0d0d18 })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.set(ISO_CX, 0, ISO_CY);
   ground.receiveShadow = true;
   scene.add(ground);
 
-  // Zone tinting — player (bottom-left green) and enemy (top-right red)
+  // Zone tinting — dark glow washes matching UI palette
   const zoneMat = (col, op) => new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, depthWrite: false });
   const zoneGeo = new THREE.PlaneGeometry(340, 280);
 
-  const pZone = new THREE.Mesh(zoneGeo, zoneMat(0x0a2018, 0.28));
+  const pZone = new THREE.Mesh(zoneGeo, zoneMat(0x0a2018, 0.55));
   pZone.rotation.x = -Math.PI / 2;
   pZone.position.set(300, 0.1, 470);
   scene.add(pZone);
 
-  const eZone = new THREE.Mesh(zoneGeo, zoneMat(0x20080a, 0.28));
+  const eZone = new THREE.Mesh(zoneGeo, zoneMat(0x20080a, 0.55));
   eZone.rotation.x = -Math.PI / 2;
   eZone.position.set(660, 0.1, 170);
   scene.add(eZone);
 
-  // Boundary border (blue-white glow line)
+  // Boundary border — dim blue glow
   const bPts = [
     BOUNDARY.x,                  0.5, BOUNDARY.y,
     BOUNDARY.x + BOUNDARY.width, 0.5, BOUNDARY.y,
@@ -209,12 +197,12 @@ function makeWallMesh(w) {
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(w.width, WALL_H, w.height),
       [
-        new THREE.MeshStandardMaterial({ color: 0x3a4268, roughness: 0.82, metalness: 0.2 }),
-        new THREE.MeshStandardMaterial({ color: 0x3a4268, roughness: 0.82, metalness: 0.2 }),
-        new THREE.MeshStandardMaterial({ color: 0x5a6490, roughness: 0.72, metalness: 0.25 }),
-        new THREE.MeshStandardMaterial({ color: 0x1e2238, roughness: 0.9,  metalness: 0.1  }),
-        new THREE.MeshStandardMaterial({ color: 0x464e78, roughness: 0.82, metalness: 0.2  }),
-        new THREE.MeshStandardMaterial({ color: 0x303858, roughness: 0.88, metalness: 0.15 }),
+        new THREE.MeshStandardMaterial({ color: 0x2a2420, roughness: 0.9, metalness: 0.0 }),
+        new THREE.MeshStandardMaterial({ color: 0x2a2420, roughness: 0.9, metalness: 0.0 }),
+        new THREE.MeshStandardMaterial({ color: 0x3c3530, roughness: 0.85, metalness: 0.0 }),
+        new THREE.MeshStandardMaterial({ color: 0x1a1410, roughness: 0.95, metalness: 0.0 }),
+        new THREE.MeshStandardMaterial({ color: 0x342e28, roughness: 0.9,  metalness: 0.0 }),
+        new THREE.MeshStandardMaterial({ color: 0x26201c, roughness: 0.92, metalness: 0.0 }),
       ]
     );
     mesh.position.y  = WALL_H / 2;
@@ -232,6 +220,45 @@ function buildWalls(walls) {
 }
 
 // ── Spawn points ──────────────────────────────────────────────────────────────
+function _drawSpawnArc(ctx, ratio, hex) {
+  const S = 128, cx = 64, cy = 64;
+  const outerR = 56, innerR = 44;
+  ctx.clearRect(0, 0, S, S);
+
+  // Background ring (dark semi-transparent full circle)
+  ctx.beginPath();
+  ctx.arc(cx, cy, outerR, 0, Math.PI * 2);
+  ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
+  ctx.fillStyle = 'rgba(0,0,0,0.28)';
+  ctx.fill('evenodd');
+
+  // HP arc — starts from 12 o'clock, goes clockwise
+  if (ratio > 0.001) {
+    const r = Math.min(1, ratio);
+    const startAngle = -Math.PI / 2;
+    const endAngle   = startAngle + r * Math.PI * 2;
+    const color = '#' + hex.toString(16).padStart(6, '0');
+
+    // Outer glow layer (slightly wider, low opacity)
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR + 3, startAngle, endAngle);
+    ctx.arc(cx, cy, innerR - 3, endAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.globalAlpha = 0.25;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Main arc
+    ctx.beginPath();
+    ctx.arc(cx, cy, outerR, startAngle, endAngle);
+    ctx.arc(cx, cy, innerR, endAngle, startAngle, true);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+}
+
 function buildSpawnPoints(spawnPoints) {
   spawnMeshes = [];
   for (const sp of spawnPoints) {
@@ -239,12 +266,12 @@ function buildSpawnPoints(spawnPoints) {
               : sp.owner === 'enemy'  ? 0xff7878
               :                         0xd4af37;
 
-    // Hexagonal raised platform
+    // Hexagonal raised platform — ink outline style on paper
     const disc = new THREE.Mesh(
       new THREE.CylinderGeometry(SPAWN_RADIUS, SPAWN_RADIUS + 2, 3.5, 6),
       new THREE.MeshStandardMaterial({
-        color: hex, emissive: hex, emissiveIntensity: 0.22,
-        roughness: 0.65, metalness: 0.45, transparent: true, opacity: 0.6,
+        color: hex, emissive: hex, emissiveIntensity: 0.08,
+        roughness: 0.85, metalness: 0.05, transparent: true, opacity: 0.55,
       })
     );
     disc.position.set(sp.x, 1.75, sp.y);
@@ -267,23 +294,20 @@ function buildSpawnPoints(spawnPoints) {
     ring.position.set(sp.x, 2.5, sp.y);
     scene.add(ring);
 
-    // HP bar
-    const barW  = SPAWN_RADIUS * 2.2;
-    const barBg = new THREE.Mesh(
-      new THREE.PlaneGeometry(barW, 4),
-      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.6, depthTest: false })
+    // HP arc ring — canvas arc drawn on flat plane around spawn disc
+    const arcSize = (SPAWN_RADIUS + 12) * 2;
+    const arcCvs  = document.createElement('canvas');
+    arcCvs.width = arcCvs.height = 128;
+    const arcCtx  = arcCvs.getContext('2d');
+    _drawSpawnArc(arcCtx, 1, hex);
+    const arcTex  = new THREE.CanvasTexture(arcCvs);
+    const arcMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(arcSize, arcSize),
+      new THREE.MeshBasicMaterial({ map: arcTex, transparent: true, depthWrite: false, side: THREE.DoubleSide })
     );
-    barBg.rotation.x = -Math.PI / 2;
-    barBg.position.set(sp.x, 4, sp.y - SPAWN_RADIUS - 10);
-    scene.add(barBg);
-
-    const barFg = new THREE.Mesh(
-      new THREE.PlaneGeometry(barW, 4),
-      new THREE.MeshBasicMaterial({ color: hex, depthTest: false })
-    );
-    barFg.rotation.x = -Math.PI / 2;
-    barFg.position.set(sp.x, 4.1, sp.y - SPAWN_RADIUS - 10);
-    scene.add(barFg);
+    arcMesh.rotation.x = -Math.PI / 2;
+    arcMesh.position.set(sp.x, 3.6, sp.y);
+    scene.add(arcMesh);
 
     // Rally map-pin
     const pinMat  = new THREE.MeshBasicMaterial({ color: 0xff9900, transparent: true, opacity: 0.93 });
@@ -298,7 +322,7 @@ function buildSpawnPoints(spawnPoints) {
     pin.visible = false;
     scene.add(pin);
 
-    spawnMeshes.push({ disc, ring, barFg, pin, sp });
+    spawnMeshes.push({ disc, ring, arcCtx, arcTex, pin, sp });
   }
 }
 
@@ -770,7 +794,7 @@ function syncDamageNumbers(damageNumbers) {
 }
 
 function syncSpawnPoints(_spawnPoints, selectedUnitType, rallyPoint, defendMode, now) {
-  for (const { disc, ring, barFg, pin, sp } of spawnMeshes) {
+  for (const { disc, ring, arcCtx, arcTex, pin, sp } of spawnMeshes) {
     const isRally  = sp === rallyPoint;
     const isPlayer = sp.owner === 'player';
 
@@ -781,8 +805,11 @@ function syncSpawnPoints(_spawnPoints, selectedUnitType, rallyPoint, defendMode,
     disc.material.color.setHex(hex);
     disc.material.emissive.setHex(hex);
     ring.material.color.setHex(hex);
-    barFg.material.color.setHex(hex);
-    barFg.scale.x = sp.hp / sp.maxHp;
+
+    // Redraw HP arc ring
+    const ratio = Math.max(0, Math.min(1, sp.hp / sp.maxHp));
+    _drawSpawnArc(arcCtx, ratio, hex);
+    arcTex.needsUpdate = true;
 
     // Map-pin: visible only on rally target, bobs up and down
     pin.visible = isRally;
@@ -898,15 +925,14 @@ async function init(_gameCanvas, spawnPoints, unitList = [], walls = [], enemyUn
   threeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   threeRenderer.setSize(960, 640, false);
-  threeRenderer.setClearColor(0x0e1018);
+  threeRenderer.setClearColor(0x0a0a12);
   threeRenderer.shadowMap.enabled    = true;
   threeRenderer.shadowMap.type       = THREE.PCFSoftShadowMap;
-  threeRenderer.toneMapping          = THREE.ACESFilmicToneMapping;
-  threeRenderer.toneMappingExposure  = 1.55;
+  threeRenderer.toneMapping          = THREE.NoToneMapping;
   threeRenderer.outputColorSpace     = THREE.SRGBColorSpace;
 
   scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(0x0e1018, 0.00022);
+  scene.fog = new THREE.FogExp2(0x0a0a12, 0.00018);
   buildCamera();
   buildLights();
   buildGround();
