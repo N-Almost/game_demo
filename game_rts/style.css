@@ -335,6 +335,116 @@ html, body {
   text-transform: uppercase;
 }
 
+/* ── Command buttons (Defend / Rally) ──────────────────────────────────────── */
+
+#command-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.cmd-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  height: 36px;
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: border-color 0.12s, background 0.12s, color 0.12s, box-shadow 0.12s;
+  white-space: nowrap;
+}
+
+.cmd-btn:active {
+  transform: scale(0.94);
+}
+
+.cmd-btn.active {
+  border-color: #6be07a;
+  background: rgba(107, 224, 122, 0.12);
+  color: #6be07a;
+  box-shadow: 0 0 10px rgba(107, 224, 122, 0.25);
+}
+
+/* Rally card — idle shows instruction, active shows status + cancel */
+.rally-card {
+  height: 36px;
+  min-width: 120px;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.18s, background 0.18s;
+}
+
+.rally-idle {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: rgba(255, 255, 255, 0.28);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.rally-active {
+  display: none;
+  align-items: center;
+  gap: 6px;
+}
+
+.rally-card.on {
+  border-color: #ff9900;
+  background: rgba(255, 153, 0, 0.1);
+}
+
+.rally-card.on .rally-idle  { display: none; }
+.rally-card.on .rally-active { display: flex; }
+
+.rally-active-icon {
+  font-size: 13px;
+  color: #ff9900;
+}
+
+.rally-active-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #ff9900;
+  white-space: nowrap;
+}
+
+.rally-cancel-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 153, 0, 0.5);
+  background: rgba(255, 153, 0, 0.15);
+  color: #ff9900;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
+  transition: background 0.12s;
+  line-height: 1;
+}
+.rally-cancel-btn:active { background: rgba(255, 153, 0, 0.4); }
+
 #timer-block {
   position: absolute;
   top: 12px;

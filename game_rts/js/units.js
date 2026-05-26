@@ -1,5 +1,5 @@
 import { BOUNDARY }                                         from './constants.js';
-import { state }                                            from './state.js';
+import { state, SPAWN_POINTS }                             from './state.js';
 import { cfg }                                              from './config.js';
 import { randomTarget, findNearestEnemyUnit, findNearestSpawnPoint, hasLOS, steerAroundWall } from './helpers.js';
 
@@ -56,6 +56,9 @@ export function spawnUnit(type, x, y) {
 }
 
 export function updateUnits(dt) {
+  // Auto-clear rally when the target spawn is captured by the player
+  if (state.rallyPoint?.owner === 'player') state.rallyPoint = null;
+
   for (const u of state.units) {
     const nearestEnemy = findNearestEnemyUnit(u.x, u.y, 'player');
     const nearestSpawn = findNearestSpawnPoint(u.x, u.y, 'player');
@@ -77,6 +80,29 @@ export function updateUnits(dt) {
 // ── Private helpers ───────────────────────────────────────────────────────────
 
 function _updateTarget(u, nearestEnemy, enemyDist, nearestSpawn) {
+  // DEFEND: hold at nearest player spawn, only attack what's already in range
+  if (state.defendMode) {
+    const home = SPAWN_POINTS
+      .filter(p => p.owner === 'player')
+      .reduce((best, p) =>
+        Math.hypot(p.x - u.x, p.y - u.y) < Math.hypot(best.x - u.x, best.y - u.y) ? p : best
+      , SPAWN_POINTS.find(p => p.owner === 'player') ?? null);
+    if (home) u.target = { x: home.x, y: home.y };
+    return;
+  }
+
+  // RALLY: advance toward the designated spawn point
+  if (state.rallyPoint) {
+    // Still engage enemies that are very close (opportunistic)
+    if (nearestEnemy && enemyDist <= u.range * 1.6) {
+      u.target = { x: nearestEnemy.x, y: nearestEnemy.y };
+    } else {
+      u.target = { x: state.rallyPoint.x, y: state.rallyPoint.y };
+    }
+    return;
+  }
+
+  // NORMAL AI
   if (nearestEnemy && enemyDist <= u.range * 1.6) {
     u.target = { x: nearestEnemy.x, y: nearestEnemy.y };
   } else if (nearestSpawn) {
@@ -101,6 +127,7 @@ function _moveUnit(u, dt, nearestEnemy, enemyDist, nearestSpawn, spawnDist) {
   } else {
     u.vx = (dx / dist) * u.speed;
     u.vy = (dy / dist) * u.speed;
+    u.facingDx = u.vx; u.facingDy = u.vy;
     u.x += u.vx * dt;
     u.y += u.vy * dt;
   }
@@ -115,6 +142,7 @@ function _tryAttack(u, dt, nearestEnemy, enemyDist, nearestSpawn, spawnDist) {
 
   const ddx = atk.x - u.x, ddy = atk.y - u.y;
   const d   = Math.hypot(ddx, ddy) || 1;
+  u.facingDx = ddx; u.facingDy = ddy;
   state.projectiles.push({
     x: u.x, y: u.y,
     vx: (ddx / d) * u.projectileSpeed, vy: (ddy / d) * u.projectileSpeed,

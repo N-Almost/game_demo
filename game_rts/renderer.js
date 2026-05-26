@@ -221,7 +221,20 @@ function buildSpawnPoints(spawnPoints) {
     barFg.position.set(sp.x, 3.1, sp.y - SPAWN_RADIUS - 10);
     scene.add(barFg);
 
-    spawnMeshes.push({ disc, ring, barFg, sp });
+    // Rally map-pin: inverted cone + sphere tip, hidden by default
+    const pinMat  = new THREE.MeshBasicMaterial({ color: 0xff9900, transparent: true, opacity: 0.93 });
+    const pin     = new THREE.Group();
+    const pinCone = new THREE.Mesh(new THREE.ConeGeometry(5, 22, 7), pinMat);
+    pinCone.rotation.x = Math.PI;      // tip points down
+    pinCone.position.y = 11;           // cone sits above tip
+    const pinBall = new THREE.Mesh(new THREE.SphereGeometry(6, 8, 8), pinMat);
+    pinBall.position.y = 26;           // ball sits on top of cone
+    pin.add(pinCone, pinBall);
+    pin.position.set(sp.x, 38, sp.y);
+    pin.visible = false;
+    scene.add(pin);
+
+    spawnMeshes.push({ disc, ring, barFg, pin, sp });
   }
 }
 
@@ -567,8 +580,10 @@ function syncUnits(units, enemies, delta) {
       mesh.position.set(u.x, 0, u.y);
 
       const spd = Math.hypot(u.vx || 0, u.vy || 0);
-      if (spd > 1) {
-        const target = Math.atan2(u.vx, u.vy);
+      const fx  = spd > 1 ? u.vx : (u.facingDx || 0);
+      const fy  = spd > 1 ? u.vy : (u.facingDy || 0);
+      if (Math.hypot(fx, fy) > 0.5) {
+        const target = Math.atan2(fx, fy);
         let diff = target - mesh.rotation.y;
         // Wrap diff to [-π, π] so we always rotate the short way round
         while (diff >  Math.PI) diff -= Math.PI * 2;
@@ -690,17 +705,36 @@ function syncDamageNumbers(damageNumbers) {
   }
 }
 
-function syncSpawnPoints(_spawnPoints, selectedUnitType, now) {
-  for (const { disc, ring, barFg, sp } of spawnMeshes) {
-    const hex = sp.owner === 'player' ? 0x6be07a
-              : sp.owner === 'enemy'  ? 0xff7878
-              :                         0xd4af37;
+function syncSpawnPoints(_spawnPoints, selectedUnitType, rallyPoint, defendMode, now) {
+  for (const { disc, ring, barFg, pin, sp } of spawnMeshes) {
+    const isRally  = sp === rallyPoint;
+    const isPlayer = sp.owner === 'player';
+
+    const hex = isRally  ? 0xffaa00
+              : isPlayer ? 0x6be07a
+              : sp.owner === 'enemy' ? 0xff7878
+              :             0xd4af37;
     disc.material.color.setHex(hex);
     ring.material.color.setHex(hex);
     barFg.material.color.setHex(hex);
     barFg.scale.x = sp.hp / sp.maxHp;
 
-    if (sp.owner === 'player' && selectedUnitType) {
+    // Map-pin: visible only on rally target, bobs up and down
+    pin.visible = isRally;
+    if (isRally) {
+      pin.position.y = 38 + Math.sin(now / 380) * 7;
+      pin.rotation.y = now / 1200;   // slow spin so it's always readable in iso view
+
+      // Fast orange pulse for rally target ring
+      const pulse = (Math.sin(now / 180) + 1) / 2;
+      ring.scale.set(1 + pulse * 0.55, 1, 1 + pulse * 0.55);
+      ring.material.opacity = 0.45 + pulse * 0.55;
+    } else if (isPlayer && defendMode) {
+      // Slow blue-ish pulse for defended spawns
+      const pulse = (Math.sin(now / 700) + 1) / 2;
+      ring.scale.set(1 + pulse * 0.12, 1, 1 + pulse * 0.12);
+      ring.material.opacity = 0.55 + pulse * 0.25;
+    } else if (isPlayer && selectedUnitType) {
       const pulse = (Math.sin(now / 280) + 1) / 2;
       ring.scale.set(1 + pulse * 0.3, 1, 1 + pulse * 0.3);
       ring.material.opacity = 0.3 + pulse * 0.55;
@@ -821,7 +855,7 @@ function render(state, selectedUnitType, spawnPoints, now) {
   syncProjectiles(state.projectiles);
   syncExplosions(state.explosions);
   syncDamageNumbers(state.damageNumbers);
-  syncSpawnPoints(spawnPoints, selectedUnitType, now);
+  syncSpawnPoints(spawnPoints, selectedUnitType, state.rallyPoint, state.defendMode, now);
   threeRenderer.render(scene, camera);
 }
 

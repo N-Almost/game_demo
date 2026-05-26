@@ -21,7 +21,7 @@ export function bindUnitButtons() {
       if (selectedUnitType === type) {
         selectedUnitType = null;
         document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('selected'));
-        _setHint('เลือกยูนิต แล้วแตะจุดเขียว');
+        _setHint(_idleHint());
       } else {
         document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
@@ -45,7 +45,7 @@ export function bindBuildingButtons() {
       if (selectedBuildingType === type) {
         selectedBuildingType = null;
         document.querySelectorAll('.building-btn').forEach(b => b.classList.remove('selected'));
-        _setHint('เลือกยูนิต แล้วแตะจุดเขียว');
+        _setHint(_idleHint());
       } else {
         document.querySelectorAll('.building-btn').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');
@@ -65,6 +65,30 @@ export function setupCanvasInput(canvas) {
   canvas.addEventListener('touchmove',  e => e.preventDefault(), { passive: false });
 }
 
+export function bindCommandButtons() {
+  const defendBtn = document.getElementById('btn-defend');
+  if (defendBtn) {
+    defendBtn.addEventListener('click', () => {
+      state.defendMode = !state.defendMode;
+      if (state.defendMode) {
+        state.rallyPoint = null;
+        _setHint('🛡 DEFEND — ยูนิตยึดตำแหน่ง spawn ของเรา');
+      } else {
+        _setHint(_idleHint());
+      }
+    });
+  }
+
+  const cancelBtn = document.getElementById('btn-cancel-rally');
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', e => {
+      e.stopPropagation(); // don't bubble to canvas
+      state.rallyPoint = null;
+      _setHint(_idleHint());
+    });
+  }
+}
+
 // ── Private ───────────────────────────────────────────────────────────────────
 
 function _handleTap(clientX, clientY) {
@@ -74,19 +98,40 @@ function _handleTap(clientX, clientY) {
     location.href = 'menu.html';
     return;
   }
-  if (!selectedUnitType && !selectedBuildingType) return;
 
   const pt = window.Renderer?.getGroundIntersect(clientX, clientY);
   if (!pt) return;
 
-  const nearest = _nearestPlayerSpawnTo(pt.x, pt.y);
-  if (!nearest || Math.hypot(nearest.x - pt.x, nearest.y - pt.y) >= SPAWN_RADIUS + 60) return;
-
-  if (selectedBuildingType) {
-    if (_placeBuilding(selectedBuildingType, nearest) && navigator.vibrate) navigator.vibrate(30);
-  } else if (selectedUnitType) {
-    if (spawnUnit(selectedUnitType, nearest.x, nearest.y) && navigator.vibrate) navigator.vibrate(30);
+  if (selectedUnitType || selectedBuildingType) {
+    // Place unit / building at nearest player spawn
+    const nearest = _nearestPlayerSpawnTo(pt.x, pt.y);
+    if (!nearest || Math.hypot(nearest.x - pt.x, nearest.y - pt.y) >= SPAWN_RADIUS + 60) return;
+    if (selectedBuildingType) {
+      if (_placeBuilding(selectedBuildingType, nearest) && navigator.vibrate) navigator.vibrate(30);
+    } else {
+      if (spawnUnit(selectedUnitType, nearest.x, nearest.y) && navigator.vibrate) navigator.vibrate(30);
+    }
+    return;
   }
+
+  // No selection — try to set / clear rally point on a non-player spawn
+  _trySetRally(pt.x, pt.y);
+}
+
+function _trySetRally(x, y) {
+  let nearest = null, nearestDist = Infinity;
+  for (const p of SPAWN_POINTS) {
+    if (p.owner === 'player') continue;
+    const d = Math.hypot(p.x - x, p.y - y);
+    if (d < nearestDist) { nearest = p; nearestDist = d; }
+  }
+  if (!nearest || nearestDist >= SPAWN_RADIUS + 60) return;
+
+  // Toggle: tap same spawn again to cancel rally
+  state.rallyPoint = (state.rallyPoint === nearest) ? null : nearest;
+  // Rally cancels defend mode
+  if (state.rallyPoint) state.defendMode = false;
+  if (navigator.vibrate) navigator.vibrate(18);
 }
 
 function _nearestPlayerSpawnTo(x, y) {
@@ -119,6 +164,10 @@ function _placeBuilding(type, sp) {
     attackTimer:     0,
   });
   return true;
+}
+
+function _idleHint() {
+  return 'เลือกยูนิต/สิ่งปลูกสร้าง · แตะ spawn ศัตรูเพื่อ Rally';
 }
 
 function _setHint(text) {

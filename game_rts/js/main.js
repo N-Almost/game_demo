@@ -1,7 +1,7 @@
 import { state, SPAWN_POINTS }                                    from './state.js';
 import { cfg, loadAllConfigs, loadCurrentWave, applyWaveScaling } from './config.js';
 import { buildUnitButtons, buildBuildingButtons, renderHUD }      from './ui.js';
-import { bindUnitButtons, bindBuildingButtons, setupCanvasInput, selectedUnitType, selectedBuildingType } from './input.js';
+import { bindUnitButtons, bindBuildingButtons, setupCanvasInput, bindCommandButtons, selectedUnitType, selectedBuildingType } from './input.js';
 import { updateUnits, spawnUnit, tickSpawnCooldowns }               from './units.js';
 import { updateEnemies, spawnEnemies }                             from './enemies.js';
 import { updateProjectiles, updateMeleeCombat, updateTurrets }      from './combat.js';
@@ -108,6 +108,7 @@ function _tickEffects(dt) {
     buildBuildingButtons(buildingList);
     bindUnitButtons();
     bindBuildingButtons();
+    bindCommandButtons();
     setupCanvasInput(canvas);
 
     state.cost     = cfg.startCost;

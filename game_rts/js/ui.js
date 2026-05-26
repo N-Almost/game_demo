@@ -61,6 +61,7 @@ export function renderHUD(currentWave) {
   _renderTimer();
   _renderGameOver(currentWave);
   _renderCooldowns();
+  _renderCommandState();
 }
 
 // ── Private HUD helpers ───────────────────────────────────────────────────────
@@ -183,4 +184,12 @@ function _renderCooldowns() {
       overlay.classList.remove('active');
     }
   });
+}
+
+function _renderCommandState() {
+  const defendBtn = document.getElementById('btn-defend');
+  if (defendBtn) defendBtn.classList.toggle('active', state.defendMode);
+
+  const rallyCard = document.getElementById('rally-card');
+  if (rallyCard) rallyCard.classList.toggle('on', !!state.rallyPoint);
 }

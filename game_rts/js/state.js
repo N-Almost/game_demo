@@ -29,6 +29,8 @@ export const state = {
   explosions:      [],
   incomeTimer:     0,
   enemySpawnTimer: 0,
+  rallyPoint:      null,   // reference to a SPAWN_POINTS entry (non-player) to advance toward
+  defendMode:      false,  // when true, units hold at nearest player spawn
 };
 
 export function addDamageNumber(x, y, damage, color) {
