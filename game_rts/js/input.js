@@ -63,6 +63,12 @@ export function setupCanvasInput(canvas) {
   canvas.addEventListener('touchend',   e => { e.preventDefault(); _handleTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: false });
   canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
   canvas.addEventListener('touchmove',  e => e.preventDefault(), { passive: false });
+
+  const overlay = document.getElementById('gameover-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', () => _handleTap(0, 0));
+    overlay.addEventListener('touchend', e => { e.preventDefault(); _handleTap(0, 0); }, { passive: false });
+  }
 }
 
 export function bindCommandButtons() {

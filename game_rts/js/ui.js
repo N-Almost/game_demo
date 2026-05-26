@@ -38,6 +38,12 @@ export function buildUnitButtons(unitDefs) {
   }
 }
 
+const BUILDING_ICONS = {
+  farm:     `<svg viewBox="0 0 24 24" fill="none"><path d="M12 22V12M12 12C12 7 7 4 3 6C7 6 10 9 12 12ZM12 12C12 7 17 4 21 6C17 6 14 9 12 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  barracks: `<svg viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V9l7-6 7 6v12M10 21v-6h4v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  turret:   `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+};
+
 export function buildBuildingButtons(buildingDefs) {
   const container = document.getElementById('building-buttons');
   if (!container) return;
@@ -46,7 +52,17 @@ export function buildBuildingButtons(buildingDefs) {
     const btn = document.createElement('button');
     btn.className    = 'building-btn';
     btn.dataset.type = b.id;
-    btn.innerHTML    = `${b.name}<br><small>${b.cost} cost · ${b.description}</small>`;
+    btn.style.setProperty('--bclr', b.color);
+    const icon = BUILDING_ICONS[b.id] ?? `<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="2"/></svg>`;
+    btn.innerHTML =
+      `<div class="bldg-top" style="background:color-mix(in srgb,${b.color} 18%,transparent)">` +
+        `<div class="bldg-icon" style="color:${b.color}">${icon}</div>` +
+      `</div>` +
+      `<div class="bldg-info">` +
+        `<div class="bldg-name">${b.name}</div>` +
+        `<div class="bldg-cost">${b.cost}<small>cost</small></div>` +
+        `<div class="bldg-desc">${b.description}</div>` +
+      `</div>`;
     container.appendChild(btn);
   }
 }
@@ -67,16 +83,18 @@ export function renderHUD(currentWave) {
 // ── Private HUD helpers ───────────────────────────────────────────────────────
 
 function _renderCostDisplay() {
-  const el = document.getElementById('cost-display');
-  if (!el) return;
+  const valEl = document.getElementById('cost-value');
+  const incEl = document.getElementById('cost-income');
+  if (!valEl || !incEl) return;
   const spawnRate = SPAWN_POINTS.filter(p => p.owner === 'player').length;
   const farmBonus = state.buildings.filter(b => b.owner === 'player' && b.effect === 'income').reduce((s, b) => s + b.effectValue, 0);
-  el.textContent = `Cost: ${state.cost} (+${spawnRate + farmBonus}/s)`;
+  valEl.textContent = state.cost;
+  incEl.textContent = `+${spawnRate + farmBonus}/s`;
 }
 
 function _renderUnitCount() {
-  const el = document.getElementById('unit-count');
-  if (el) el.textContent = `Units: ${state.units.length}/${getEffectiveMaxUnits()}`;
+  const el = document.getElementById('unit-val');
+  if (el) el.textContent = `${state.units.length}/${getEffectiveMaxUnits()}`;
 }
 
 function _renderUnitMonitor() {

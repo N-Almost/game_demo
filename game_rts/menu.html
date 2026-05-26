@@ -7,6 +7,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="theme-color" content="#0a0a12" />
   <title>Simple RTS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after {
       margin: 0; padding: 0; box-sizing: border-box;
@@ -17,7 +20,7 @@
       width: 100%; height: 100%;
       background: #0a0a12;
       overflow: hidden;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: 'Rajdhani', system-ui, -apple-system, sans-serif;
       touch-action: none;
       user-select: none;
       -webkit-user-select: none;
@@ -183,6 +186,39 @@
     .btn-reset:hover  { color: rgba(255,255,255,0.6); border-color: rgba(255,255,255,0.22); }
     .btn-reset:active { transform: scale(0.97); }
 
+    /* Fade-to-black transition layer */
+    #transition-out {
+      position: fixed; inset: 0;
+      background: #0a0a12;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 50;
+      transition: opacity 0.35s ease;
+    }
+    #transition-out.active { opacity: 1; pointer-events: auto; }
+
+    /* Entrance animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes cardIn {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0); }
+    }
+    .card       { animation: cardIn  0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both; }
+    .title-wrap { animation: fadeUp  0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both; }
+    .wave-badge { animation: fadeUp  0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both; }
+    .stats-row  { animation: fadeUp  0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.33s both; }
+    .btn-group  { animation: fadeUp  0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.41s both; }
+
+    /* Improved start button feel */
+    .btn-start {
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s, background 0.15s;
+    }
+    .btn-start:hover  { transform: scale(1.03); }
+    .btn-start:active { transform: scale(0.95); }
+
     /* Stats row */
     .stats-row {
       display: flex; gap: 28px; align-items: center;
@@ -206,6 +242,7 @@
 <body>
   <video id="bg-video" src="menu.mp4" autoplay loop muted playsinline></video>
   <div id="bg-overlay"></div>
+  <div id="transition-out"></div>
 
   <div id="portrait-warning">
     <div class="rotate-icon">&#8635;</div>
@@ -258,7 +295,9 @@
     document.getElementById('wave-display').textContent = `Wave ${wave}`;
 
     document.getElementById('btn-start').addEventListener('click', () => {
-      location.href = 'index.html';
+      const out = document.getElementById('transition-out');
+      out.classList.add('active');
+      setTimeout(() => { location.href = 'index.html'; }, 340);
     });
 
     document.getElementById('btn-reset').addEventListener('click', () => {

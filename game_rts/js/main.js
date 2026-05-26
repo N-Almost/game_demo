@@ -133,7 +133,10 @@ function _tickEffects(dt) {
   } catch (err) {
     console.error('[Init] failed:', err);
   } finally {
-    if (loadingEl) loadingEl.style.display = 'none';
+    if (loadingEl) {
+      loadingEl.style.opacity = '0';
+      setTimeout(() => { loadingEl.style.display = 'none'; }, 420);
+    }
     requestAnimationFrame(loop);
   }
 })();

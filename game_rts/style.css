@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&display=swap');
+
 *, *::before, *::after {
   margin: 0;
   padding: 0;
@@ -10,7 +12,7 @@ html, body {
   height: 100%;
   background: #0a0a12;
   overflow: hidden;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: 'Rajdhani', system-ui, -apple-system, sans-serif;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -67,8 +69,6 @@ html, body {
   max-width: 100%;
   max-height: 100%;
   display: block;
-  image-rendering: crisp-edges;
-  image-rendering: pixelated;
 }
 
 /* gameCanvas is now an invisible event-capture layer under Three.js */
@@ -93,7 +93,7 @@ html, body {
 
 /* Game-over overlay */
 #gameover-overlay {
-  display: none;
+  display: flex;
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.68);
@@ -101,12 +101,45 @@ html, body {
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  opacity: 0;
 }
-#gameover-overlay.visible { display: flex; }
+
+#gameover-overlay.visible {
+  pointer-events: auto;
+  animation: goOverlayIn 0.4s ease forwards;
+}
+
+#gameover-overlay.visible #gameover-body {
+  animation: goBodyIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.06s both;
+}
+
+#gameover-overlay.visible .go-wave    { animation: goItemIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both; }
+#gameover-overlay.visible .go-label   { animation: goItemIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.28s both; }
+#gameover-overlay.visible .go-winner  { animation: goItemIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both,
+                                                    goWinnerPulse 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.72s both; }
+#gameover-overlay.visible .go-sub     { animation: goItemIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.44s both; }
+#gameover-overlay.visible .go-restart { animation: goItemIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.56s both; }
+
+@keyframes goOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes goBodyIn {
+  from { opacity: 0; transform: scale(0.88) translateY(20px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+@keyframes goItemIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes goWinnerPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.07); }
+  100% { transform: scale(1); }
+}
 
 #gameover-body {
   text-align: center;
-  font-family: system-ui, -apple-system, sans-serif;
 }
 .go-label   { font-size: 52px; font-weight: 700; color: #ffd86b; margin: 0 0 12px; }
 .go-wave    { font-size: 14px; font-weight: 800; color: #ffd86b; letter-spacing: 3px; margin: 0 0 8px; }
@@ -118,15 +151,54 @@ html, body {
   position: absolute;
   inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 16px;
   background: #0a0a12;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1.1rem;
-  font-weight: 600;
-  letter-spacing: 2px;
   z-index: 20;
   pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.loading-title {
+  font-size: 38px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.loading-title span { color: #6be07a; }
+
+.loading-bar-wrap {
+  width: 160px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.loading-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6be07a, #a0f0a8);
+  border-radius: 2px;
+  width: 0%;
+  animation: loadingFill 2.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes loadingFill {
+  0%   { width: 0%; }
+  50%  { width: 65%; }
+  80%  { width: 85%; }
+  100% { width: 94%; }
+}
+
+.loading-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 3px;
 }
 
 /* Bottom HUD */
@@ -144,19 +216,80 @@ html, body {
 }
 
 #cost-display {
-  color: #ffd86b;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+}
+
+.cost-coin {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.cost-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1;
+}
+
+#cost-value {
+  font-size: 20px;
   font-weight: 700;
-  font-size: 15px;
-  white-space: nowrap;
-  min-width: 110px;
+  color: #ffd86b;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+#cost-income {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 216, 107, 0.5);
+  letter-spacing: 0.5px;
+  line-height: 1;
 }
 
 #unit-count {
-  color: #a0c4ff;
-  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+#unit-val {
   font-size: 15px;
-  white-space: nowrap;
-  min-width: 72px;
+  font-weight: 700;
+  color: #a0c4ff;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.hud-sublabel {
+  font-size: 8px;
+  font-weight: 600;
+  color: rgba(160, 196, 255, 0.4);
+  letter-spacing: 1.5px;
+  line-height: 1;
+}
+
+.hud-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.hud-group-label {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: rgba(255, 255, 255, 0.2);
+  text-transform: uppercase;
+  padding-left: 2px;
 }
 
 #unit-buttons {
@@ -339,101 +472,126 @@ html, body {
 
 #command-buttons {
   display: flex;
-  align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  align-items: flex-start;
 }
 
-.cmd-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 10px;
-  height: 36px;
+/* ── Command card — shared base ────────────────────────────────────────────── */
+.cmd-card {
+  width: 64px;
+  flex-shrink: 0;
+  padding: 0;
   border: 1.5px solid rgba(255, 255, 255, 0.14);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
   touch-action: manipulation;
-  transition: border-color 0.12s, background 0.12s, color 0.12s, box-shadow 0.12s;
-  white-space: nowrap;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.08s;
 }
 
-.cmd-btn:active {
-  transform: scale(0.94);
-}
+.cmd-card:active { transform: scale(0.93); }
 
-.cmd-btn.active {
-  border-color: #6be07a;
-  background: rgba(107, 224, 122, 0.12);
-  color: #6be07a;
-  box-shadow: 0 0 10px rgba(107, 224, 122, 0.25);
-}
-
-/* Rally card — idle shows instruction, active shows status + cancel */
-.rally-card {
-  height: 36px;
-  min-width: 120px;
-  border: 1.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+.cmd-card-top {
+  width: 100%;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 10px;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.18s, background 0.18s;
+  flex-shrink: 0;
+  transition: background 0.15s;
 }
 
-.rally-idle {
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.4px;
-  color: rgba(255, 255, 255, 0.28);
-  white-space: nowrap;
-  pointer-events: none;
+.cmd-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+.cmd-card-icon svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+  color: rgba(255, 255, 255, 0.28);
+  transition: color 0.15s, filter 0.15s;
+}
+
+.cmd-card-label {
+  width: 100%;
+  padding: 4px 4px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.28);
+  text-align: center;
+  background: rgba(0, 0, 0, 0.32);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+/* ── DEFEND active ─────────────────────────────────────────────────────────── */
+#btn-defend.active {
+  border-color: #6be07a;
+  box-shadow: 0 0 14px rgba(107, 224, 122, 0.35);
+}
+#btn-defend.active .cmd-card-top {
+  background: rgba(107, 224, 122, 0.14);
+}
+#btn-defend.active .cmd-card-icon svg {
+  color: #6be07a;
+  filter: drop-shadow(0 0 5px rgba(107, 224, 122, 0.7));
+}
+#btn-defend.active .cmd-card-label { color: #6be07a; }
+
+/* ── RALLY card ────────────────────────────────────────────────────────────── */
+#rally-card { cursor: default; }
+
+.rally-idle { /* inherits .cmd-card-label */ }
 
 .rally-active {
   display: none;
+  width: 100%;
+  padding: 4px 6px 6px;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.32);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .rally-card.on {
   border-color: #ff9900;
-  background: rgba(255, 153, 0, 0.1);
+  box-shadow: 0 0 14px rgba(255, 153, 0, 0.35);
 }
-
+.rally-card.on .cmd-card-top  { background: rgba(255, 153, 0, 0.14); }
+.rally-card.on .cmd-card-icon svg {
+  color: #ff9900;
+  filter: drop-shadow(0 0 5px rgba(255, 153, 0, 0.7));
+}
 .rally-card.on .rally-idle  { display: none; }
 .rally-card.on .rally-active { display: flex; }
 
-.rally-active-icon {
-  font-size: 13px;
-  color: #ff9900;
-}
-
 .rally-active-label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   letter-spacing: 1.5px;
   color: #ff9900;
-  white-space: nowrap;
 }
 
 .rally-cancel-btn {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  border: 1.5px solid rgba(255, 153, 0, 0.5);
-  background: rgba(255, 153, 0, 0.15);
+  border: 1px solid rgba(255, 153, 0, 0.55);
+  background: rgba(255, 153, 0, 0.2);
   color: #ff9900;
-  font-size: 10px;
+  font-size: 8px;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -443,7 +601,7 @@ html, body {
   transition: background 0.12s;
   line-height: 1;
 }
-.rally-cancel-btn:active { background: rgba(255, 153, 0, 0.4); }
+.rally-cancel-btn:active { background: rgba(255, 153, 0, 0.45); }
 
 #timer-block {
   position: absolute;
@@ -566,44 +724,103 @@ html, body {
 
 #building-buttons {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  flex-wrap: nowrap;
 }
 
 .building-btn {
-  min-width: 72px;
-  min-height: 48px;
-  padding: 6px 12px;
-  border: 2px solid rgba(255, 200, 80, 0.28);
+  width: 72px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
   border-radius: 10px;
-  background: rgba(255, 200, 80, 0.05);
-  color: #ddd;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-  text-align: center;
+  background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
   touch-action: manipulation;
-  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.08s;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: border-color 0.12s, box-shadow 0.12s, transform 0.08s;
 }
 
-.building-btn small {
+.bldg-top {
+  width: 100%;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.bldg-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bldg-icon svg {
+  width: 24px;
+  height: 24px;
   display: block;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.5));
+}
+
+.bldg-info {
+  width: 100%;
+  padding: 5px 4px 6px;
+  background: rgba(0, 0, 0, 0.38);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.bldg-name {
   font-size: 10px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.4);
-  margin-top: 2px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  line-height: 1.2;
+  text-align: center;
+}
+
+.bldg-cost {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffd86b;
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.bldg-cost small {
+  font-size: 7px;
+  font-weight: 600;
+  color: rgba(255, 216, 107, 0.55);
+  letter-spacing: 0.3px;
+}
+
+.bldg-desc {
+  font-size: 7.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.3px;
+  text-align: center;
+  line-height: 1.3;
+  white-space: normal;
+  max-width: 64px;
 }
 
 .building-btn.selected {
-  border-color: #ffd86b;
-  background: rgba(255, 216, 107, 0.15);
-  color: #ffd86b;
-  box-shadow: 0 0 10px rgba(255, 216, 107, 0.28);
+  border-color: var(--bclr);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--bclr) 55%, transparent);
 }
 
-.building-btn.selected small {
-  color: rgba(255, 216, 107, 0.55);
+.building-btn.selected .bldg-name {
+  color: var(--bclr);
 }
 
 .building-btn:active {
