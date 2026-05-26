@@ -1,4 +1,5 @@
-import { state, SPAWN_POINTS }                                    from './state.js';
+import { state, session, SPAWN_POINTS }                            from './state.js';
+import { recordMatchEnd, addGold, goldRewardForWave }             from './profile.js';
 import { cfg, loadAllConfigs, loadCurrentWave, applyWaveScaling } from './config.js';
 import { buildUnitButtons, buildBuildingButtons, renderHUD }      from './ui.js';
 import { bindUnitButtons, bindBuildingButtons, setupCanvasInput, bindCommandButtons, selectedUnitType, selectedBuildingType } from './input.js';
@@ -49,8 +50,8 @@ function render() {
 // ── Update sub-systems ────────────────────────────────────────────────────────
 
 function _checkWinConditions(dt) {
-  if (!SPAWN_POINTS.some(p => p.owner === 'player')) { state.gameOver = true; state.winner = 'enemy';  return; }
-  if (!SPAWN_POINTS.some(p => p.owner === 'enemy'))  { state.gameOver = true; state.winner = 'player'; return; }
+  if (!SPAWN_POINTS.some(p => p.owner === 'player')) { _setGameOver('enemy');  return; }
+  if (!SPAWN_POINTS.some(p => p.owner === 'enemy'))  { _setGameOver('player'); return; }
 
   state.timeLeft -= dt;
   if (state.timeLeft > 0) return;
@@ -60,18 +61,29 @@ function _checkWinConditions(dt) {
 
   if (pHp !== eHp) {
     state.timeLeft  = 0;
-    state.gameOver  = true;
     state.timeUpWin = true;
-    state.winner    = pHp > eHp ? 'player' : 'enemy';
+    _setGameOver(pHp > eHp ? 'player' : 'enemy');
   } else if (!state.suddenDeath) {
     state.timeLeft    = cfg.suddenDeathDuration;
     state.suddenDeath = true;
   } else {
     state.timeLeft  = 0;
-    state.gameOver  = true;
     state.timeUpWin = true;
-    state.winner    = 'draw';
+    _setGameOver('draw');
   }
+}
+
+function _setGameOver(winner) {
+  if (state.gameOver) return;
+  state.gameOver      = true;
+  state.winner        = winner;
+  session.durationSec = (performance.now() - session.startTimestamp) / 1000;
+  session.won         = winner === 'player';
+  if (session.won) {
+    session.goldEarned = goldRewardForWave(cfg.currentWave);
+    addGold(session.goldEarned);
+  }
+  recordMatchEnd(session, cfg.currentWave);
 }
 
 function _updateIncome(dt) {
@@ -113,6 +125,7 @@ function _tickEffects(dt) {
 
     state.cost     = cfg.startCost;
     state.timeLeft = cfg.matchDuration;
+    session.startTimestamp = performance.now();
 
     loadCurrentWave();
     applyWaveScaling();

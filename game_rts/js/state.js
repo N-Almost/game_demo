@@ -33,6 +33,17 @@ export const state = {
   defendMode:      false,  // when true, units hold at nearest player spawn
 };
 
+export const session = {
+  kills: 0,
+  unitsDeployed: 0,
+  spawnsCaptured: 0,
+  unitUsage: {},
+  startTimestamp: 0,
+  durationSec: 0,
+  won: false,
+  goldEarned: 0,
+};
+
 export function addDamageNumber(x, y, damage, color) {
   state.damageNumbers.push({ x, y, damage, color, alpha: 1.0 });
 }

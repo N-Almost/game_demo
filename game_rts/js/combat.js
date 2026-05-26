@@ -1,5 +1,5 @@
 import { SPAWN_RADIUS }                             from './constants.js';
-import { state, SPAWN_POINTS, addDamageNumber, addExplosion } from './state.js';
+import { state, session, SPAWN_POINTS, addDamageNumber, addExplosion } from './state.js';
 import { cfg }                                      from './config.js';
 import { hasLOS }                                   from './helpers.js';
 
@@ -111,6 +111,7 @@ function _hitSpawnPoint(p, pi) {
       addExplosion(p.x, p.y, 15);
       state.projectiles.splice(pi, 1);
       if (sp.hp <= 0) {
+        if (p.owner === 'player') session.spawnsCaptured++;
         sp.owner = p.owner;
         sp.hp    = sp.maxHp;
         const lostBldg = state.buildings.findIndex(b => b.spawnRef === sp);
@@ -149,7 +150,7 @@ function _hitEnemy(p, pi) {
 
     if (en.hp <= 0) {
       const idx = state.enemies.indexOf(en);
-      if (idx !== -1) { state.enemies.splice(idx, 1); state.cost += cfg.killReward; addExplosion(en.x, en.y, 25); }
+      if (idx !== -1) { state.enemies.splice(idx, 1); state.cost += cfg.killReward; addExplosion(en.x, en.y, 25); session.kills++; }
     }
     return true;
   }

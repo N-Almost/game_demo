@@ -118,7 +118,8 @@ html, body {
 #gameover-overlay.visible .go-winner  { animation: goItemIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both,
                                                     goWinnerPulse 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.72s both; }
 #gameover-overlay.visible .go-sub     { animation: goItemIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.44s both; }
-#gameover-overlay.visible .go-restart { animation: goItemIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.56s both; }
+#gameover-overlay.visible .go-gold    { animation: goItemIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.52s both; }
+#gameover-overlay.visible .go-restart { animation: goItemIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.64s both; }
 
 @keyframes goOverlayIn {
   from { opacity: 0; }
@@ -145,6 +146,16 @@ html, body {
 .go-wave    { font-size: 14px; font-weight: 800; color: #ffd86b; letter-spacing: 3px; margin: 0 0 8px; }
 .go-winner  { font-size: 46px; font-weight: 700; margin: 0 0 12px; }
 .go-sub     { font-size: 20px; color: rgba(255,255,255,0.5); margin: 0 0 16px; }
+.go-gold {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 22px; font-weight: 800; letter-spacing: 1px;
+  color: #ffd86b; margin: 0 0 14px;
+  padding: 7px 20px;
+  background: rgba(255,216,107,0.12);
+  border: 1px solid rgba(255,216,107,0.28);
+  border-radius: 99px;
+}
+.go-gold-coin { font-size: 16px; }
 .go-restart { font-size: 22px; color: rgba(255,255,255,0.55); margin: 0; }
 
 #loading-screen {

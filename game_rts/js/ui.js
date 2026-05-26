@@ -1,4 +1,4 @@
-import { state, SPAWN_POINTS } from './state.js';
+import { state, session, SPAWN_POINTS } from './state.js';
 import { cfg }                  from './config.js';
 import { getEffectiveMaxUnits, getCooldownRatio, getCooldownRemaining } from './units.js';
 
@@ -187,12 +187,16 @@ function _renderGameOver(currentWave) {
     ? `<p class="go-wave">WAVE ${currentWave} CLEAR → WAVE ${currentWave + 1}</p>`
     : `<p class="go-wave">WAVE ${currentWave} — เริ่มใหม่ที่ WAVE 1</p>`;
 
+  const goldLine = won && session.goldEarned > 0
+    ? `<p class="go-gold"><span class="go-gold-coin">◆</span> +${session.goldEarned} GOLD</p>`
+    : '';
+
   let html;
   if (state.timeUpWin) {
     const sub = isDraw && state.suddenDeath ? 'Sudden Death หมดเวลา — เสมอ' : 'ชนะด้วย Spawn HP สูงกว่า';
-    html = `${waveLine}<p class="go-label">TIME UP!</p><p class="go-winner" style="color:${c}">${msg}</p><p class="go-sub">${sub}</p><p class="go-restart">แตะเพื่อเล่นใหม่</p>`;
+    html = `${waveLine}<p class="go-label">TIME UP!</p><p class="go-winner" style="color:${c}">${msg}</p><p class="go-sub">${sub}</p>${goldLine}<p class="go-restart">แตะเพื่อเล่นใหม่</p>`;
   } else {
-    html = `${waveLine}<p class="go-winner" style="color:${c}">${msg}</p><p class="go-restart">แตะเพื่อเล่นใหม่</p>`;
+    html = `${waveLine}<p class="go-winner" style="color:${c}">${msg}</p>${goldLine}<p class="go-restart">แตะเพื่อเล่นใหม่</p>`;
   }
   if (overlayBody.innerHTML !== html) overlayBody.innerHTML = html;
   overlayEl.classList.add('visible');

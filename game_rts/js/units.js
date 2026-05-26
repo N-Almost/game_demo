@@ -1,5 +1,5 @@
 import { BOUNDARY }                                         from './constants.js';
-import { state, SPAWN_POINTS }                             from './state.js';
+import { state, session, SPAWN_POINTS }                    from './state.js';
 import { cfg }                                              from './config.js';
 import { randomTarget, findNearestEnemyUnit, findNearestSpawnPoint, hasLOS, steerAroundWall } from './helpers.js';
 
@@ -52,6 +52,8 @@ export function spawnUnit(type, x, y) {
     attackTimer: 0, hp: proto.maxHp, maxHp: proto.maxHp,
     target: randomTarget(),
   });
+  session.unitsDeployed++;
+  session.unitUsage[type] = (session.unitUsage[type] ?? 0) + 1;
   return true;
 }
 

@@ -206,11 +206,9 @@
       from { opacity: 0; transform: scale(0.96) translateY(8px); }
       to   { opacity: 1; transform: scale(1)    translateY(0); }
     }
-    .card       { animation: cardIn  0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both; }
-    .title-wrap { animation: fadeUp  0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both; }
-    .wave-badge { animation: fadeUp  0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both; }
-    .stats-row  { animation: fadeUp  0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.33s both; }
-    .btn-group  { animation: fadeUp  0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.41s both; }
+    .card         { animation: cardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both; }
+    .title-wrap   { animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both; }
+    .btn-group    { animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.38s both; }
 
     /* Improved start button feel */
     .btn-start {
@@ -219,23 +217,149 @@
     .btn-start:hover  { transform: scale(1.03); }
     .btn-start:active { transform: scale(0.95); }
 
-    /* Stats row */
-    .stats-row {
-      display: flex; gap: 28px; align-items: center;
+    /* ── Profile strip ──────────────────────────────── */
+    .profile-strip {
+      width: 100%;
+      display: flex; align-items: center; gap: 12px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.08s both;
     }
-    .stat {
-      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    .profile-avatar {
+      width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, #6be07a, #3ab84a);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800; color: #0a1a0d;
+      box-shadow: 0 0 16px rgba(107,224,122,0.35);
     }
-    .stat-val {
-      font-size: 22px; font-weight: 800; color: #fff;
+    .profile-info { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+    .profile-name-row { display: flex; align-items: center; gap: 8px; }
+    .profile-name {
+      font-size: 15px; font-weight: 800; letter-spacing: 1px; color: #fff;
+    }
+    .profile-edit-btn {
+      background: none; border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 5px; padding: 2px 7px;
+      color: rgba(255,255,255,0.4); font-size: 11px; cursor: pointer;
+      font-family: inherit; transition: color 0.15s, border-color 0.15s;
+      touch-action: manipulation;
+    }
+    .profile-edit-btn:hover { color: rgba(255,255,255,0.75); border-color: rgba(255,255,255,0.3); }
+    .profile-sub {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.5px;
+      color: rgba(255,255,255,0.32); display: flex; align-items: center; gap: 6px;
+    }
+    .profile-sub-sep { opacity: 0.4; }
+    .profile-best-wave { color: #ffd86b; }
+
+    /* ── Combat stats ───────────────────────────────── */
+    .profile-stats {
+      width: 100%; display: flex; align-items: stretch; gap: 0;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px; overflow: hidden;
+      animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.30s both;
+    }
+    .pstat {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      gap: 3px; padding: 10px 6px;
+    }
+    .pstat + .pstat { border-left: 1px solid rgba(255,255,255,0.07); }
+    .pstat-icon {
+      font-size: 12px; line-height: 1; opacity: 0.55;
+    }
+    .pstat-val {
+      font-size: 18px; font-weight: 800; color: #fff;
       font-variant-numeric: tabular-nums; line-height: 1;
     }
-    .stat-label {
-      font-size: 9px; font-weight: 600; letter-spacing: 1.5px;
-      color: rgba(255,255,255,0.3); text-transform: uppercase;
+    .pstat-label {
+      font-size: 7.5px; font-weight: 700; letter-spacing: 1px;
+      color: rgba(255,255,255,0.28); text-transform: uppercase; text-align: center;
     }
-    .stat-divider {
-      width: 1px; height: 28px; background: rgba(255,255,255,0.1);
+
+    /* ── Fav unit badge ─────────────────────────────── */
+    .badge-row {
+      display: flex; align-items: center; gap: 8px;
+      animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.22s both;
+    }
+    .fav-badge {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 12px;
+      background: rgba(160,196,255,0.08);
+      border: 1px solid rgba(160,196,255,0.18);
+      border-radius: 99px;
+    }
+    .fav-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #a0c4ff; box-shadow: 0 0 5px #a0c4ff88;
+    }
+    .fav-text {
+      font-size: 11px; font-weight: 700; letter-spacing: 1px;
+      color: #a0c4ff; text-transform: uppercase;
+    }
+
+    /* ── Name edit modal ────────────────────────────── */
+    #name-modal {
+      display: none; position: fixed; inset: 0; z-index: 60;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
+    }
+    #name-modal.open { display: flex; }
+    .name-modal-box {
+      background: rgba(12,12,24,0.98);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 18px; padding: 28px 32px;
+      display: flex; flex-direction: column; gap: 16px;
+      min-width: 280px; max-width: 360px; width: 90%;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+      animation: cardIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .name-modal-title {
+      font-size: 11px; font-weight: 700; letter-spacing: 3px;
+      color: rgba(255,255,255,0.35); text-align: center;
+    }
+    .name-input {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px; padding: 12px 16px;
+      color: #fff; font-family: inherit;
+      font-size: 20px; font-weight: 700; letter-spacing: 1px;
+      text-align: center; text-transform: uppercase;
+      outline: none; transition: border-color 0.15s;
+      width: 100%;
+    }
+    .name-input:focus { border-color: #6be07a; }
+    .name-input::placeholder { color: rgba(255,255,255,0.2); }
+    .name-modal-btns { display: flex; gap: 10px; }
+    .name-confirm {
+      flex: 1; padding: 12px; background: #6be07a;
+      color: #0a1a0d; font-size: 13px; font-weight: 800; letter-spacing: 0.5px;
+      border: none; border-radius: 10px; cursor: pointer; font-family: inherit;
+      touch-action: manipulation; transition: background 0.15s;
+    }
+    .name-confirm:hover { background: #80ea8e; }
+    .name-cancel {
+      flex: 1; padding: 12px; background: transparent;
+      color: rgba(255,255,255,0.35); font-size: 13px; font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 10px;
+      cursor: pointer; font-family: inherit; touch-action: manipulation;
+    }
+
+    /* ── Gold balance ────────────────────────────────── */
+    .gold-badge {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 11px;
+      background: rgba(255,216,107,0.1);
+      border: 1px solid rgba(255,216,107,0.25);
+      border-radius: 99px;
+      flex-shrink: 0;
+    }
+    .gold-badge-icon {
+      width: 14px; height: 14px;
+    }
+    .gold-badge-val {
+      font-size: 13px; font-weight: 800; letter-spacing: 0.5px;
+      color: #ffd86b; font-variant-numeric: tabular-nums;
     }
   </style>
 </head>
@@ -255,31 +379,72 @@
     <div class="blob blob-3"></div>
 
     <div class="card">
+
+      <!-- Profile strip -->
+      <div class="profile-strip">
+        <div class="profile-avatar" id="profile-avatar">C</div>
+        <div class="profile-info">
+          <div class="profile-name-row">
+            <span class="profile-name" id="profile-name">COMMANDER</span>
+            <button class="profile-edit-btn" id="profile-edit-btn">✎ RENAME</button>
+          </div>
+          <div class="profile-sub">
+            <span id="profile-record">0W 0L</span>
+            <span class="profile-sub-sep">·</span>
+            <span id="profile-wr">0% WR</span>
+            <span class="profile-sub-sep">·</span>
+            <span class="profile-best-wave" id="profile-best">BEST WAVE 1</span>
+          </div>
+        </div>
+        <div class="gold-badge">
+          <svg class="gold-badge-icon" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8.5" fill="rgba(255,216,107,0.2)" stroke="#ffd86b" stroke-width="1.5"/>
+            <circle cx="10" cy="10" r="4.5" fill="rgba(255,216,107,0.5)"/>
+          </svg>
+          <span class="gold-badge-val" id="profile-gold">0</span>
+        </div>
+      </div>
+
+      <!-- Game title -->
       <div class="title-wrap">
         <div class="title-eyebrow">Strategy Game</div>
         <div class="title-main">Simple <span>RTS</span></div>
         <div class="title-sub">ยึด spawn point ให้ได้มากที่สุด</div>
       </div>
 
-      <div class="wave-badge">
-        <div class="wave-dot"></div>
-        <div class="wave-text" id="wave-display">Wave 1</div>
+      <!-- Wave + fav unit -->
+      <div class="badge-row">
+        <div class="wave-badge">
+          <div class="wave-dot"></div>
+          <div class="wave-text" id="wave-display">Wave 1</div>
+        </div>
+        <div class="fav-badge" id="fav-badge" style="display:none">
+          <div class="fav-dot"></div>
+          <div class="fav-text" id="fav-text">—</div>
+        </div>
       </div>
 
-      <div class="stats-row">
-        <div class="stat">
-          <div class="stat-val">3:00</div>
-          <div class="stat-label">Match Time</div>
+      <!-- Combat record stats -->
+      <div class="profile-stats">
+        <div class="pstat">
+          <div class="pstat-icon">⚔</div>
+          <div class="pstat-val" id="stat-kills">0</div>
+          <div class="pstat-label">Kills</div>
         </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <div class="stat-val">12</div>
-          <div class="stat-label">Spawn Points</div>
+        <div class="pstat">
+          <div class="pstat-icon">🧑‍✈️</div>
+          <div class="pstat-val" id="stat-units">0</div>
+          <div class="pstat-label">Units</div>
         </div>
-        <div class="stat-divider"></div>
-        <div class="stat">
-          <div class="stat-val">3</div>
-          <div class="stat-label">Unit Types</div>
+        <div class="pstat">
+          <div class="pstat-icon">🚩</div>
+          <div class="pstat-val" id="stat-spawns">0</div>
+          <div class="pstat-label">Spawns</div>
+        </div>
+        <div class="pstat">
+          <div class="pstat-icon">⏱</div>
+          <div class="pstat-val" id="stat-time">0m</div>
+          <div class="pstat-label">Play Time</div>
         </div>
       </div>
 
@@ -290,10 +455,68 @@
     </div>
   </div>
 
-  <script>
-    const wave = parseInt(localStorage.getItem('rts_wave') || '1', 10);
-    document.getElementById('wave-display').textContent = `Wave ${wave}`;
+  <!-- Name edit modal -->
+  <div id="name-modal">
+    <div class="name-modal-box">
+      <div class="name-modal-title">COMMANDER NAME</div>
+      <input class="name-input" id="name-input" maxlength="12" placeholder="ชื่อของคุณ" autocomplete="off" />
+      <div class="name-modal-btns">
+        <button class="name-confirm" id="name-confirm">CONFIRM</button>
+        <button class="name-cancel" id="name-cancel">CANCEL</button>
+      </div>
+    </div>
+  </div>
 
+  <script type="module">
+    import { loadProfile, setProfileName } from './js/profile.js';
+
+    // ── Helpers ──────────────────────────────────────────────
+    function _formatTime(sec) {
+      if (sec < 60)   return `${sec}s`;
+      if (sec < 3600) return `${Math.floor(sec / 60)}m`;
+      const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+      return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    }
+
+    function _favUnit(unitUsage) {
+      const entries = Object.entries(unitUsage ?? {});
+      return entries.length ? entries.reduce((a, b) => b[1] > a[1] ? b : a)[0] : null;
+    }
+
+    // ── Render profile ───────────────────────────────────────
+    function renderProfile() {
+      const p  = loadProfile();
+      const wr = p.gamesPlayed > 0 ? Math.round(p.wins / p.gamesPlayed * 100) : 0;
+      const fav = _favUnit(p.unitUsage);
+
+      document.getElementById('profile-avatar').textContent = p.name.charAt(0);
+      document.getElementById('profile-name').textContent   = p.name;
+      document.getElementById('profile-record').textContent = `${p.wins}W ${p.losses}L`;
+      document.getElementById('profile-wr').textContent     = `${wr}% WR`;
+      document.getElementById('profile-best').textContent   = `BEST WAVE ${p.bestWave}`;
+
+      document.getElementById('stat-kills').textContent  = p.totalKills.toLocaleString();
+      document.getElementById('stat-units').textContent  = p.totalUnitsDeployed.toLocaleString();
+      document.getElementById('stat-spawns').textContent = p.totalSpawnsCaptured.toLocaleString();
+      document.getElementById('stat-time').textContent   = _formatTime(p.playTimeSec);
+      document.getElementById('profile-gold').textContent = (p.gold ?? 0).toLocaleString();
+
+      const favEl = document.getElementById('fav-badge');
+      if (fav) {
+        document.getElementById('fav-text').textContent = `FAV · ${fav.toUpperCase()}`;
+        favEl.style.display = 'flex';
+      } else {
+        favEl.style.display = 'none';
+      }
+    }
+
+    // ── Wave display ─────────────────────────────────────────
+    const wave = parseInt(localStorage.getItem('rts_wave') || '1', 10);
+    document.getElementById('wave-display').textContent = `WAVE ${wave}`;
+
+    renderProfile();
+
+    // ── Buttons ──────────────────────────────────────────────
     document.getElementById('btn-start').addEventListener('click', () => {
       const out = document.getElementById('transition-out');
       out.classList.add('active');
@@ -302,7 +525,36 @@
 
     document.getElementById('btn-reset').addEventListener('click', () => {
       localStorage.removeItem('rts_wave');
-      document.getElementById('wave-display').textContent = 'Wave 1';
+      document.getElementById('wave-display').textContent = 'WAVE 1';
+    });
+
+    // ── Name edit modal ──────────────────────────────────────
+    const modal     = document.getElementById('name-modal');
+    const nameInput = document.getElementById('name-input');
+
+    document.getElementById('profile-edit-btn').addEventListener('click', () => {
+      nameInput.value = loadProfile().name;
+      modal.classList.add('open');
+      setTimeout(() => nameInput.focus(), 80);
+    });
+
+    document.getElementById('name-confirm').addEventListener('click', () => {
+      setProfileName(nameInput.value);
+      modal.classList.remove('open');
+      renderProfile();
+    });
+
+    document.getElementById('name-cancel').addEventListener('click', () => {
+      modal.classList.remove('open');
+    });
+
+    nameInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter')  document.getElementById('name-confirm').click();
+      if (e.key === 'Escape') document.getElementById('name-cancel').click();
+    });
+
+    modal.addEventListener('click', e => {
+      if (e.target === modal) modal.classList.remove('open');
     });
   </script>
 </body>
