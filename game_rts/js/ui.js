@@ -102,17 +102,31 @@ function _renderUnitMonitor() {
   if (!el) return;
   if (!state.units.length) { el.innerHTML = ''; return; }
 
-  let html = '<div class="um-header">UNITS</div>';
+  let html = '<div class="um-header">FIELD UNITS</div>';
   for (const u of state.units) {
-    const ratio    = u.hp / u.maxHp;
-    const barColor = ratio > 0.6 ? '#6be07a' : ratio > 0.3 ? '#ffb347' : '#ff5555';
-    const name     = cfg.protos[u.type]?.name ?? u.type;
-    html += `<div class="um-row">`
-          + `<span class="um-dot" style="background:${u.color}"></span>`
-          + `<span class="um-name">${name}</span>`
-          + `<div class="um-bar-bg"><div class="um-bar" style="width:${(ratio * 100).toFixed(1)}%;background:${barColor}"></div></div>`
-          + `<span class="um-hp">${Math.ceil(u.hp)}</span>`
-          + `</div>`;
+    const ratio      = Math.max(0, u.hp / u.maxHp);
+    const barColor   = ratio > 0.6 ? '#6be07a' : ratio > 0.3 ? '#ffb347' : '#ff5555';
+    const barGlow    = ratio > 0.6 ? '107,224,122' : ratio > 0.3 ? '255,179,71' : '255,85,85';
+    const isAtk      = u.attackTimer > 0;
+    const name       = (cfg.protos[u.type]?.name ?? u.type).toUpperCase();
+    const ability    = cfg.protos[u.type]?.ability ?? '';
+    const abilityTag = ability ? `<span class="um-ability">${ability.toUpperCase()}</span>` : '';
+
+    html +=
+      `<div class="um-card">` +
+        `<div class="um-accent" style="background:${u.color};box-shadow:0 0 5px ${u.color}99"></div>` +
+        `<div class="um-body">` +
+          `<div class="um-top">` +
+            `<span class="um-name">${name}</span>` +
+            abilityTag +
+            `<span class="um-status ${isAtk ? 'atk' : 'idle'}"></span>` +
+            `<span class="um-hp-val">${Math.ceil(u.hp)}</span>` +
+          `</div>` +
+          `<div class="um-bar-track">` +
+            `<div class="um-bar-fill" style="width:${(ratio*100).toFixed(1)}%;background:${barColor};box-shadow:0 0 5px rgba(${barGlow},0.55)"></div>` +
+          `</div>` +
+        `</div>` +
+      `</div>`;
   }
   el.innerHTML = html;
 }
