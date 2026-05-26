@@ -1,6 +1,7 @@
 import { BOUNDARY }                                         from './constants.js';
 import { state, session, SPAWN_POINTS }                    from './state.js';
 import { cfg }                                              from './config.js';
+import { applyUpgrades }                                    from './upgrades.js';
 import { randomTarget, findNearestEnemyUnit, findNearestSpawnPoint, hasLOS, steerAroundWall } from './helpers.js';
 
 // ── Spawn cooldowns ───────────────────────────────────────────────────────────
@@ -35,13 +36,14 @@ export function getEffectiveMaxUnits() {
 }
 
 export function spawnUnit(type, x, y) {
-  const proto = cfg.protos[type] || cfg.protos[Object.keys(cfg.protos)[0]];
-  if (!proto) return false;
+  const base  = cfg.protos[type] || cfg.protos[Object.keys(cfg.protos)[0]];
+  if (!base) return false;
   if (_cooldowns.has(type)) return false;
   if (state.units.length >= getEffectiveMaxUnits()) return false;
-  if (state.cost < proto.cost) return false;
-  state.cost -= proto.cost;
-  if (proto.cooldown > 0) _cooldowns.set(type, proto.cooldown);
+  if (state.cost < base.cost) return false;
+  state.cost -= base.cost;
+  if (base.cooldown > 0) _cooldowns.set(type, base.cooldown);
+  const proto = applyUpgrades(base, type);
   state.units.push({
     id: state.nextId++,
     type, x, y, vx: 0, vy: 0,
