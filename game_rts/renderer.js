@@ -59,55 +59,105 @@ function buildCamera() {
 
 // ── Lights ────────────────────────────────────────────────────────────────────
 function buildLights() {
-  scene.add(new THREE.AmbientLight(0xffffff, 0.65));
-  const dir = new THREE.DirectionalLight(0xffffff, 1.1);
-  dir.position.set(ISO_CX + 400, 600, ISO_CY - 300);
-  dir.castShadow            = true;
-  dir.shadow.mapSize.width  = 1024;
-  dir.shadow.mapSize.height = 1024;
-  const sc = dir.shadow.camera;
+  // Hemisphere: warm sky, deep blue-purple ground bounce
+  scene.add(new THREE.HemisphereLight(0x90b0e0, 0x1a2040, 1.1));
+
+  // Key light: warm golden-white, sharp shadows
+  const key = new THREE.DirectionalLight(0xffecc0, 1.9);
+  key.position.set(ISO_CX + 500, 700, ISO_CY - 400);
+  key.castShadow            = true;
+  key.shadow.mapSize.width  = 2048;
+  key.shadow.mapSize.height = 2048;
+  key.shadow.bias           = -0.0008;
+  const sc = key.shadow.camera;
   sc.left = -600; sc.right = 600; sc.top = 600; sc.bottom = -600;
   sc.near = 0.5;  sc.far = 3000;
-  scene.add(dir);
+  scene.add(key);
+
+  // Fill light: cool blue from opposite corner
+  const fill = new THREE.DirectionalLight(0x4060c8, 0.45);
+  fill.position.set(ISO_CX - 400, 250, ISO_CY + 500);
+  scene.add(fill);
 }
 
 // ── Ground ────────────────────────────────────────────────────────────────────
+function _makeGroundTexture() {
+  const size = 1024;
+  const cvs  = document.createElement('canvas');
+  cvs.width = cvs.height = size;
+  const ctx  = cvs.getContext('2d');
+
+  // Base
+  ctx.fillStyle = '#16202e';
+  ctx.fillRect(0, 0, size, size);
+
+  // Fine tactical grid
+  const fine = size / 16;
+  ctx.strokeStyle = 'rgba(80,130,220,0.18)';
+  ctx.lineWidth   = 0.8;
+  for (let i = 0; i <= 16; i++) {
+    ctx.beginPath(); ctx.moveTo(i * fine, 0);    ctx.lineTo(i * fine, size); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * fine);    ctx.lineTo(size, i * fine); ctx.stroke();
+  }
+
+  // Major grid every 4 fine cells
+  const major = size / 4;
+  ctx.strokeStyle = 'rgba(90,150,240,0.28)';
+  ctx.lineWidth   = 1.4;
+  for (let i = 0; i <= 4; i++) {
+    ctx.beginPath(); ctx.moveTo(i * major, 0);   ctx.lineTo(i * major, size); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, i * major);   ctx.lineTo(size, i * major); ctx.stroke();
+  }
+
+  // Diagonal accent lines (subtle, tactical feel)
+  ctx.strokeStyle = 'rgba(70,110,200,0.07)';
+  ctx.lineWidth   = 0.8;
+  for (let i = -size; i <= size * 2; i += major) {
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + size, size); ctx.stroke();
+  }
+
+  return new THREE.CanvasTexture(cvs);
+}
+
 function buildGround() {
-  const mesh = new THREE.Mesh(
+  // Main ground
+  const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(BOUNDARY.width, BOUNDARY.height),
-    new THREE.MeshLambertMaterial({ color: 0x0d1020 })
+    new THREE.MeshStandardMaterial({ map: _makeGroundTexture(), roughness: 0.95, metalness: 0 })
   );
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(ISO_CX, 0, ISO_CY);
-  mesh.receiveShadow = true;
-  scene.add(mesh);
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.set(ISO_CX, 0, ISO_CY);
+  ground.receiveShadow = true;
+  scene.add(ground);
 
-  // Grid lines (slightly above ground to avoid z-fighting)
-  const pts = [];
-  const step = 80;
-  for (let gx = BOUNDARY.x; gx <= BOUNDARY.x + BOUNDARY.width; gx += step)
-    pts.push(gx, 0.3, BOUNDARY.y,  gx, 0.3, BOUNDARY.y + BOUNDARY.height);
-  for (let gy = BOUNDARY.y; gy <= BOUNDARY.y + BOUNDARY.height; gy += step)
-    pts.push(BOUNDARY.x, 0.3, gy,  BOUNDARY.x + BOUNDARY.width, 0.3, gy);
-  const gridGeo = new THREE.BufferGeometry();
-  gridGeo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-  scene.add(new THREE.LineSegments(gridGeo,
-    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.045 })));
+  // Zone tinting — player (bottom-left green) and enemy (top-right red)
+  const zoneMat = (col, op) => new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: op, depthWrite: false });
+  const zoneGeo = new THREE.PlaneGeometry(340, 280);
 
-  // Boundary border
+  const pZone = new THREE.Mesh(zoneGeo, zoneMat(0x0a2018, 0.28));
+  pZone.rotation.x = -Math.PI / 2;
+  pZone.position.set(300, 0.1, 470);
+  scene.add(pZone);
+
+  const eZone = new THREE.Mesh(zoneGeo, zoneMat(0x20080a, 0.28));
+  eZone.rotation.x = -Math.PI / 2;
+  eZone.position.set(660, 0.1, 170);
+  scene.add(eZone);
+
+  // Boundary border (blue-white glow line)
   const bPts = [
-    BOUNDARY.x,                  0.3, BOUNDARY.y,
-    BOUNDARY.x + BOUNDARY.width, 0.3, BOUNDARY.y,
-    BOUNDARY.x + BOUNDARY.width, 0.3, BOUNDARY.y + BOUNDARY.height,
-    BOUNDARY.x,                  0.3, BOUNDARY.y + BOUNDARY.height,
-    BOUNDARY.x,                  0.3, BOUNDARY.y,
+    BOUNDARY.x,                  0.5, BOUNDARY.y,
+    BOUNDARY.x + BOUNDARY.width, 0.5, BOUNDARY.y,
+    BOUNDARY.x + BOUNDARY.width, 0.5, BOUNDARY.y + BOUNDARY.height,
+    BOUNDARY.x,                  0.5, BOUNDARY.y + BOUNDARY.height,
+    BOUNDARY.x,                  0.5, BOUNDARY.y,
   ];
   const borderGeo = new THREE.BufferGeometry();
   borderGeo.setAttribute('position', new THREE.Float32BufferAttribute(bPts, 3));
   scene.add(new THREE.Line(borderGeo,
-    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.22 })));
+    new THREE.LineBasicMaterial({ color: 0x4466bb, transparent: true, opacity: 0.5 })));
 
-  // Invisible hit plane for raycasting (covers full play area generously)
+  // Invisible hit plane for raycasting
   hitPlane = new THREE.Mesh(
     new THREE.PlaneGeometry(4000, 4000),
     new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
@@ -159,12 +209,12 @@ function makeWallMesh(w) {
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(w.width, WALL_H, w.height),
       [
-        new THREE.MeshLambertMaterial({ color: 0x1e1e34 }),  // +X east
-        new THREE.MeshLambertMaterial({ color: 0x1e1e34 }),  // -X west
-        new THREE.MeshLambertMaterial({ color: 0x3a3a56 }),  // +Y top
-        new THREE.MeshLambertMaterial({ color: 0x111128 }),  // -Y bottom
-        new THREE.MeshLambertMaterial({ color: 0x26263e }),  // +Z south
-        new THREE.MeshLambertMaterial({ color: 0x1a1a30 }),  // -Z north
+        new THREE.MeshStandardMaterial({ color: 0x3a4268, roughness: 0.82, metalness: 0.2 }),
+        new THREE.MeshStandardMaterial({ color: 0x3a4268, roughness: 0.82, metalness: 0.2 }),
+        new THREE.MeshStandardMaterial({ color: 0x5a6490, roughness: 0.72, metalness: 0.25 }),
+        new THREE.MeshStandardMaterial({ color: 0x1e2238, roughness: 0.9,  metalness: 0.1  }),
+        new THREE.MeshStandardMaterial({ color: 0x464e78, roughness: 0.82, metalness: 0.2  }),
+        new THREE.MeshStandardMaterial({ color: 0x303858, roughness: 0.88, metalness: 0.15 }),
       ]
     );
     mesh.position.y  = WALL_H / 2;
@@ -187,30 +237,44 @@ function buildSpawnPoints(spawnPoints) {
   for (const sp of spawnPoints) {
     const hex = sp.owner === 'player' ? 0x6be07a
               : sp.owner === 'enemy'  ? 0xff7878
-              :                         0xd4af37;  // neutral — gold
+              :                         0xd4af37;
 
+    // Hexagonal raised platform
     const disc = new THREE.Mesh(
-      new THREE.CylinderGeometry(SPAWN_RADIUS, SPAWN_RADIUS, 2, 32),
-      new THREE.MeshLambertMaterial({ color: hex, transparent: true, opacity: 0.28 })
+      new THREE.CylinderGeometry(SPAWN_RADIUS, SPAWN_RADIUS + 2, 3.5, 6),
+      new THREE.MeshStandardMaterial({
+        color: hex, emissive: hex, emissiveIntensity: 0.22,
+        roughness: 0.65, metalness: 0.45, transparent: true, opacity: 0.6,
+      })
     );
-    disc.position.set(sp.x, 1, sp.y);
+    disc.position.set(sp.x, 1.75, sp.y);
     scene.add(disc);
 
+    // Inner glow cap on top of platform
+    const cap = new THREE.Mesh(
+      new THREE.CylinderGeometry(SPAWN_RADIUS - 5, SPAWN_RADIUS - 5, 0.5, 6),
+      new THREE.MeshBasicMaterial({ color: hex, transparent: true, opacity: 0.5 })
+    );
+    cap.position.set(sp.x, 3.8, sp.y);
+    scene.add(cap);
+
+    // Outer emissive ring
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(SPAWN_RADIUS + 4, 1.5, 6, 32),
-      new THREE.MeshBasicMaterial({ color: hex, transparent: true, opacity: 0.7 })
+      new THREE.TorusGeometry(SPAWN_RADIUS + 5, 2, 6, 32),
+      new THREE.MeshBasicMaterial({ color: hex, transparent: true, opacity: 0.75 })
     );
     ring.rotation.x = -Math.PI / 2;
-    ring.position.set(sp.x, 2, sp.y);
+    ring.position.set(sp.x, 2.5, sp.y);
     scene.add(ring);
 
+    // HP bar
     const barW  = SPAWN_RADIUS * 2.2;
     const barBg = new THREE.Mesh(
       new THREE.PlaneGeometry(barW, 4),
-      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.55, depthTest: false })
+      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.6, depthTest: false })
     );
     barBg.rotation.x = -Math.PI / 2;
-    barBg.position.set(sp.x, 3, sp.y - SPAWN_RADIUS - 10);
+    barBg.position.set(sp.x, 4, sp.y - SPAWN_RADIUS - 10);
     scene.add(barBg);
 
     const barFg = new THREE.Mesh(
@@ -218,17 +282,17 @@ function buildSpawnPoints(spawnPoints) {
       new THREE.MeshBasicMaterial({ color: hex, depthTest: false })
     );
     barFg.rotation.x = -Math.PI / 2;
-    barFg.position.set(sp.x, 3.1, sp.y - SPAWN_RADIUS - 10);
+    barFg.position.set(sp.x, 4.1, sp.y - SPAWN_RADIUS - 10);
     scene.add(barFg);
 
-    // Rally map-pin: inverted cone + sphere tip, hidden by default
+    // Rally map-pin
     const pinMat  = new THREE.MeshBasicMaterial({ color: 0xff9900, transparent: true, opacity: 0.93 });
     const pin     = new THREE.Group();
     const pinCone = new THREE.Mesh(new THREE.ConeGeometry(5, 22, 7), pinMat);
-    pinCone.rotation.x = Math.PI;      // tip points down
-    pinCone.position.y = 11;           // cone sits above tip
+    pinCone.rotation.x = Math.PI;
+    pinCone.position.y = 11;
     const pinBall = new THREE.Mesh(new THREE.SphereGeometry(6, 8, 8), pinMat);
-    pinBall.position.y = 26;           // ball sits on top of cone
+    pinBall.position.y = 26;
     pin.add(pinCone, pinBall);
     pin.position.set(sp.x, 38, sp.y);
     pin.visible = false;
@@ -470,7 +534,7 @@ function makeBuildingMesh(building) {
 
   const body = new THREE.Mesh(
     new THREE.BoxGeometry(R * 1.7, H, R * 1.7),
-    new THREE.MeshLambertMaterial({ color: mainColor })
+    new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.75, metalness: 0.15 })
   );
   body.position.y = H / 2;
   body.castShadow = true;
@@ -478,7 +542,7 @@ function makeBuildingMesh(building) {
 
   const roof = new THREE.Mesh(
     new THREE.ConeGeometry(R * 1.4, H * 0.45, 4),
-    new THREE.MeshLambertMaterial({ color: darkColor })
+    new THREE.MeshStandardMaterial({ color: darkColor, roughness: 0.8, metalness: 0.1 })
   );
   roof.rotation.y = Math.PI / 4;
   roof.position.y = H + H * 0.225;
@@ -502,7 +566,7 @@ function _makeTurretMesh(building) {
   // Base platform
   const base = new THREE.Mesh(
     new THREE.CylinderGeometry(R * 1.1, R * 1.3, R * 0.7, 8),
-    new THREE.MeshLambertMaterial({ color: 0x2e2e46 })
+    new THREE.MeshStandardMaterial({ color: 0x3c4060, roughness: 0.78, metalness: 0.35 })
   );
   base.position.y = R * 0.35;
   base.castShadow = true;
@@ -511,16 +575,16 @@ function _makeTurretMesh(building) {
   // Turret head
   const head = new THREE.Mesh(
     new THREE.BoxGeometry(R * 1.4, R * 0.9, R * 1.4),
-    new THREE.MeshLambertMaterial({ color: accentColor })
+    new THREE.MeshStandardMaterial({ color: accentColor, roughness: 0.6, metalness: 0.45, emissive: accentColor, emissiveIntensity: 0.12 })
   );
   head.position.y = R * 1.15;
   head.castShadow = true;
   group.add(head);
 
-  // Gun barrel (pointing toward top of screen in iso = -Z direction)
+  // Gun barrel
   const barrel = new THREE.Mesh(
     new THREE.CylinderGeometry(R * 0.15, R * 0.15, R * 1.6, 6),
-    new THREE.MeshLambertMaterial({ color: 0x1a1a2e })
+    new THREE.MeshStandardMaterial({ color: 0x18182a, roughness: 0.7, metalness: 0.6 })
   );
   barrel.rotation.x = Math.PI / 2;
   barrel.position.set(0, R * 1.15, -R * 1.1);
@@ -715,6 +779,7 @@ function syncSpawnPoints(_spawnPoints, selectedUnitType, rallyPoint, defendMode,
               : sp.owner === 'enemy' ? 0xff7878
               :             0xd4af37;
     disc.material.color.setHex(hex);
+    disc.material.emissive.setHex(hex);
     ring.material.color.setHex(hex);
     barFg.material.color.setHex(hex);
     barFg.scale.x = sp.hp / sp.maxHp;
@@ -833,11 +898,15 @@ async function init(_gameCanvas, spawnPoints, unitList = [], walls = [], enemyUn
   threeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   threeRenderer.setSize(960, 640, false);
-  threeRenderer.setClearColor(0x0a0a12);
-  threeRenderer.shadowMap.enabled = true;
-  threeRenderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+  threeRenderer.setClearColor(0x0e1018);
+  threeRenderer.shadowMap.enabled    = true;
+  threeRenderer.shadowMap.type       = THREE.PCFSoftShadowMap;
+  threeRenderer.toneMapping          = THREE.ACESFilmicToneMapping;
+  threeRenderer.toneMappingExposure  = 1.55;
+  threeRenderer.outputColorSpace     = THREE.SRGBColorSpace;
 
   scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0e1018, 0.00022);
   buildCamera();
   buildLights();
   buildGround();
