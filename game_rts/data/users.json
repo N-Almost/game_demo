@@ -31,13 +31,13 @@
     "profile": {
       "name": "JSON",
       "bestWave": 2,
-      "gamesPlayed": 5,
+      "gamesPlayed": 6,
       "wins": 1,
-      "losses": 4,
+      "losses": 5,
       "totalKills": 60,
       "totalUnitsDeployed": 93,
       "totalSpawnsCaptured": 85,
-      "playTimeSec": 577,
+      "playTimeSec": 611,
       "unitUsage": {
         "fast": 49,
         "heavy": 26,
