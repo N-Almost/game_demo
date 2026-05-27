@@ -82,6 +82,7 @@ function _setGameOver(winner) {
   if (session.won) {
     session.goldEarned = goldRewardForWave(cfg.currentWave);
     addGold(session.goldEarned);
+    localStorage.setItem('rts_wave', cfg.currentWave + 1);
   }
   recordMatchEnd(session, cfg.currentWave);
 }
