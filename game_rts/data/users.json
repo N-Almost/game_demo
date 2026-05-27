@@ -31,17 +31,17 @@
     "profile": {
       "name": "JSON",
       "bestWave": 2,
-      "gamesPlayed": 4,
+      "gamesPlayed": 5,
       "wins": 1,
-      "losses": 3,
-      "totalKills": 50,
-      "totalUnitsDeployed": 83,
-      "totalSpawnsCaptured": 62,
-      "playTimeSec": 473,
+      "losses": 4,
+      "totalKills": 60,
+      "totalUnitsDeployed": 93,
+      "totalSpawnsCaptured": 85,
+      "playTimeSec": 577,
       "unitUsage": {
-        "fast": 43,
-        "heavy": 24,
-        "soldier": 16
+        "fast": 49,
+        "heavy": 26,
+        "soldier": 18
       },
       "gold": 15
     },

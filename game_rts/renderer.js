@@ -98,9 +98,15 @@ const _enemyMatCache = {}; // type → Map<geometryUUID, Material>
 let spawnMeshes = [];
 
 // Object pools
-const projectilePool = [];
-const explosionPool  = [];
+let   _projIM = null;          // InstancedMesh — replaces the 30-Mesh projectile pool
+let   _explIM = null;          // InstancedMesh — replaces the 20-Mesh explosion pool
 const damagePool     = [];
+const _projColor = new THREE.Color();
+const _explColor = new THREE.Color();
+const _explPos   = new THREE.Vector3();
+const _explScl   = new THREE.Vector3();
+// Pre-computed quaternion for torus lying flat on the XZ ground plane
+const _flatQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
 
 // Phase 6: GLB model cache
 const modelTemplates    = {};
@@ -380,28 +386,27 @@ function buildSpawnPoints(spawnPoints) {
 
 // ── Object pools ──────────────────────────────────────────────────────────────
 function buildPools() {
-  // Projectile pool
-  for (let i = 0; i < 30; i++) {
-    const m = new THREE.Mesh(
-      new THREE.SphereGeometry(3, 6, 6),
-      new THREE.MeshBasicMaterial({ color: 0xffd86b })
-    );
-    m.visible = false;
-    scene.add(m);
-    projectilePool.push(m);
-  }
+  // Projectile pool — single InstancedMesh, per-instance color via setColorAt
+  _projIM = new THREE.InstancedMesh(
+    new THREE.SphereGeometry(3, 6, 6),
+    new THREE.MeshBasicMaterial({ color: 0xffffff }),
+    60
+  );
+  _projIM.frustumCulled = false;
+  _projIM.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  _projIM.count = 0;
+  scene.add(_projIM);
 
-  // Explosion pool (flat torus ring on XZ plane)
-  for (let i = 0; i < 20; i++) {
-    const m = new THREE.Mesh(
-      new THREE.TorusGeometry(1, 0.45, 6, 16),
-      new THREE.MeshBasicMaterial({ color: 0xffb450, transparent: true })
-    );
-    m.rotation.x = -Math.PI / 2;
-    m.visible = false;
-    scene.add(m);
-    explosionPool.push(m);
-  }
+  // Explosion pool — single InstancedMesh, rotation baked into each instance matrix
+  _explIM = new THREE.InstancedMesh(
+    new THREE.TorusGeometry(1, 0.45, 6, 16),
+    new THREE.MeshBasicMaterial({ color: 0xffffff }),
+    40
+  );
+  _explIM.frustumCulled = false;
+  _explIM.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  _explIM.count = 0;
+  scene.add(_explIM);
 
   // Damage number sprites (CanvasTexture)
   for (let i = 0; i < 20; i++) {
@@ -724,12 +729,13 @@ function makeHpCanvas(fillRatio, isEnemy) {
 }
 
 function updateHpBar(mesh, hp, maxHp) {
-  const { fgCtx, fgTex, isEnemy } = mesh.userData;
-  if (!fgCtx) return;
-  fgCtx.clearRect(0, 0, 64, 8);
-  fgCtx.fillStyle = isEnemy ? '#ff7a7a' : '#6be07a';
-  fgCtx.fillRect(0, 0, (hp / maxHp) * 64, 8);
-  fgTex.needsUpdate = true;
+  const ud = mesh.userData;
+  if (!ud.fgCtx || ud.lastHp === hp) return;
+  ud.lastHp = hp;
+  ud.fgCtx.clearRect(0, 0, 64, 8);
+  ud.fgCtx.fillStyle = ud.isEnemy ? '#ff7a7a' : '#6be07a';
+  ud.fgCtx.fillRect(0, 0, (hp / maxHp) * 64, 8);
+  ud.fgTex.needsUpdate = true;
 }
 
 // ── Building mesh factory ─────────────────────────────────────────────────────
@@ -981,27 +987,34 @@ function advanceAnimation(mesh, unit, delta) {
 }
 
 function syncProjectiles(projectiles) {
-  projectilePool.forEach(m => { m.visible = false; });
-  const n = Math.min(projectiles.length, projectilePool.length);
+  const n = Math.min(projectiles.length, 60);
   for (let i = 0; i < n; i++) {
     const p = projectiles[i];
-    projectilePool[i].position.set(p.x, 7, p.y);
-    projectilePool[i].material.color.setHex(p.fromTurret ? 0xff8c42 : p.owner === 'player' ? 0xffd86b : 0xff6b6b);
-    projectilePool[i].visible = true;
+    _m4t.makeTranslation(p.x, 7, p.y);
+    _projIM.setMatrixAt(i, _m4t);
+    _projColor.setHex(p.fromTurret ? 0xff8c42 : p.owner === 'player' ? 0xffd86b : 0xff6b6b);
+    _projIM.setColorAt(i, _projColor);
   }
+  _projIM.count = n;
+  _projIM.instanceMatrix.needsUpdate = n > 0;
+  if (_projIM.instanceColor) _projIM.instanceColor.needsUpdate = n > 0;
 }
 
 function syncExplosions(explosions) {
-  explosionPool.forEach(m => { m.visible = false; });
-  const n = Math.min(explosions.length, explosionPool.length);
+  const n = Math.min(explosions.length, 40);
   for (let i = 0; i < n; i++) {
     const exp = explosions[i];
-    const s   = exp.size * 0.55;
-    explosionPool[i].scale.set(s, s, s);
-    explosionPool[i].position.set(exp.x, 1, exp.y);
-    explosionPool[i].material.opacity = exp.alpha * 0.7;
-    explosionPool[i].visible = true;
+    _explPos.set(exp.x, 1, exp.y);
+    _explScl.setScalar(exp.size * 0.55);
+    _m4t.compose(_explPos, _flatQ, _explScl);
+    _explIM.setMatrixAt(i, _m4t);
+    // Encode fade in color brightness — approaches black (≈ background) as alpha → 0
+    _explColor.setHex(0xffb450).multiplyScalar(exp.alpha * 0.7);
+    _explIM.setColorAt(i, _explColor);
   }
+  _explIM.count = n;
+  _explIM.instanceMatrix.needsUpdate = n > 0;
+  if (_explIM.instanceColor) _explIM.instanceColor.needsUpdate = n > 0;
 }
 
 function syncDamageNumbers(damageNumbers) {
