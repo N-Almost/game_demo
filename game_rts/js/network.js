@@ -1,13 +1,13 @@
-// WebRTC P2P — signaling via local HTTP server (signaling.js on port 8765)
-// Both peers must be on the same LAN; host runs signaling.js + http.server 8080.
+// WebRTC P2P — signaling via server.js (same port 8080 as game server)
+// Run: node server.js   →   host + guest both open http://<lan-ip>:8080
 
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
 ];
 
-// Signaling server lives on the same host that serves the game files
-const SIGNAL = () => `http://${location.hostname}:8765`;
+// Signaling routes live on the same origin as the game
+const SIGNAL = () => `${location.protocol}//${location.host}`;
 
 let _pc   = null;
 let _dc   = null;

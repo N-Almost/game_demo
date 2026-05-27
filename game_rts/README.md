@@ -10,16 +10,23 @@ GLB models and JSON configs are loaded via `fetch`, so the game **must be served
 over HTTP** (not opened as a local `file://`).
 
 ```bash
-python3 -m http.server 8080
-# open http://localhost:8080/game_rts/menu.html
+node server.js
 ```
+
+Prints the LAN IP automatically — host opens `localhost:8080`, guest opens the
+printed URL on the same WiFi. No npm install required (Node.js built-ins only).
+
+### What `server.js` does
+- Serves all static files on port 8080
+- Hosts the WebRTC signaling server on the same port (`/offer`, `/answer/:code`)
+- Replaces the old two-step setup (`python3 -m http.server` + `node signaling.js`)
 
 ## Pages
 
 | File | Purpose |
 |------|---------|
-| `menu.html` | Main menu — start game, view profile, go to upgrades |
-| `index.html` | Game screen |
+| `index.html` | Main menu — start game, view profile, go to upgrades |
+| `game.html` | Game screen (VS AI or PvP) |
 | `upgrade.html` | Spend gold to permanently upgrade unit stats |
 
 ## Architecture
@@ -28,18 +35,20 @@ python3 -m http.server 8080
 
 | File | Role |
 |------|------|
-| `main.js` | Game loop, win-condition checks, wave progression |
+| `main.js` | Game loop, win-condition checks, wave progression, PvP snapshot sync |
 | `state.js` | Shared mutable state (`state`, `session`, `SPAWN_POINTS`) |
 | `config.js` | Loads all JSON configs, applies per-wave enemy scaling |
 | `ui.js` | HUD rendering — cost bar, unit monitor, game-over overlay |
 | `input.js` | Touch/click handling, unit/building selection, rally & defend |
 | `units.js` | Player unit AI, movement, attack, spawn cooldowns |
-| `enemies.js` | Enemy spawn logic and AI |
+| `enemies.js` | Enemy spawn logic and AI; enemy cooldown tracking for PvP |
 | `combat.js` | Projectile physics, hit detection, melee, turret fire |
 | `helpers.js` | LOS raycasting, steering, nearest-target queries |
 | `constants.js` | Map boundary rect |
 | `profile.js` | Player profile in `localStorage` — gold, stats, win/loss |
 | `upgrades.js` | Permanent unit upgrades stored in `localStorage` |
+| `network.js` | WebRTC P2P wrapper — offer/answer/send via signaling server |
+| `pvp-lobby.js` | PvP lobby UI — host generates 6-digit code, guest joins with it |
 
 ### Renderer (`renderer.js`)
 
@@ -105,6 +114,14 @@ Frustum is 960 × 640 — one world unit = one canvas pixel.
 | Damage | +8 DMG |
 | Speed | +6 SPD |
 | Atk Speed | +0.2 /s |
+
+### PvP mode
+- Both devices must be on the same WiFi network
+- Host runs `node server.js`, both open the printed URL
+- Host clicks **VS PLAYER → HOST**, shares the 6-digit room code
+- Guest opens the same URL, clicks **GUEST**, enters the code
+- Host runs the full simulation and streams state to guest every frame
+- Guest sends commands (spawn, rally, defend) back to host via WebRTC DataChannel
 
 ## Adding content
 
