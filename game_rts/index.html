@@ -38,7 +38,7 @@
     #bg-overlay {
       position:fixed; inset:0; z-index:1; pointer-events:none;
       background:
-        linear-gradient(to bottom, rgba(6,6,16,0.72) 0%, rgba(6,6,16,0.18) 40%, rgba(6,6,16,0.18) 60%, rgba(6,6,16,0.82) 100%),
+        linear-gradient(to bottom, rgba(6,6,16,0.72) 0%, rgba(6,6,16,0.18) 40%, rgba(6,6,16,0.18) 60%, rgba(6,6,16,0.85) 100%),
         linear-gradient(to right,  rgba(6,6,16,0.60) 0%, transparent 45%, transparent 55%, rgba(6,6,16,0.55) 100%);
     }
 
@@ -49,17 +49,15 @@
     }
 
     /* ── Animations ─────────────────────────────────── */
-    @keyframes fadeUp    { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+    @keyframes fadeUp    { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
     @keyframes fadeDown  { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:none; } }
     @keyframes fadeRight { from { opacity:0; transform:translateX(-14px); } to { opacity:1; transform:none; } }
     @keyframes fadeLeft  { from { opacity:0; transform:translateX(14px);  } to { opacity:1; transform:none; } }
-    @keyframes cardIn    { from { opacity:0; transform:scale(0.95) translateY(8px); } to { opacity:1; transform:none; } }
-    @keyframes ringPulse {
-      0%,100% { opacity:0.35; transform:scale(1); }
-      50%     { opacity:0.75; transform:scale(1.07); }
-    }
-    @keyframes pulse {
-      0%,100% { opacity:1; } 50% { opacity:0.45; }
+    @keyframes cardIn    { from { opacity:0; transform:scale(0.95) translateY(10px); } to { opacity:1; transform:none; } }
+    @keyframes pulse     { 0%,100% { opacity:1; } 50% { opacity:0.45; } }
+    @keyframes shimmer   {
+      0%   { background-position: -200% center; }
+      100% { background-position:  200% center; }
     }
 
     /* ══════════════════════════════════════════════════
@@ -83,7 +81,6 @@
       font-size:11px; font-weight:500; color:rgba(255,255,255,0.28);
       letter-spacing:0.3px;
     }
-    /* thin green accent line under title */
     .title-accent {
       width:36px; height:2px; border-radius:1px;
       background:#6be07a; box-shadow:0 0 8px #6be07a99;
@@ -98,7 +95,6 @@
       position:absolute; top:14px; right:16px; z-index:10;
       animation:fadeLeft 0.5s cubic-bezier(0.22,1,0.36,1) 0.08s both;
     }
-
     .pw-bar {
       display:flex; align-items:center; gap:8px;
       padding:6px 10px 6px 7px;
@@ -110,7 +106,6 @@
       transition:border-color 0.15s, background 0.15s;
     }
     .pw-bar:hover { border-color:rgba(255,255,255,0.18); background:rgba(12,12,28,0.88); }
-
     .pw-avatar {
       width:26px; height:26px; border-radius:50%; flex-shrink:0;
       background:linear-gradient(135deg,#6be07a,#3ab84a);
@@ -131,7 +126,6 @@
       transition:transform 0.22s ease, color 0.15s; margin-left:2px;
     }
     #profile-widget.open .pw-chevron { transform:rotate(180deg); color:rgba(255,255,255,0.55); }
-
     .pw-dropdown {
       position:absolute; top:calc(100% + 6px); right:0;
       min-width:240px;
@@ -144,7 +138,6 @@
       transition:max-height 0.28s cubic-bezier(0.22,1,0.36,1), opacity 0.22s ease;
     }
     #profile-widget.open .pw-dropdown { max-height:280px; opacity:1; pointer-events:auto; }
-
     .pw-drop-inner { padding:12px 14px; display:flex; flex-direction:column; gap:10px; }
     .pw-record-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
     .pw-wl { font-size:12px; font-weight:700; letter-spacing:0.5px; color:rgba(255,255,255,0.5); }
@@ -181,85 +174,176 @@
        BOTTOM-RIGHT — ACTION PANEL
     ══════════════════════════════════════════════════ */
     #hud-actions {
-      position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); right:16px;
-      display:flex; flex-direction:column; align-items:flex-end; gap:10px;
-      animation:fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.14s both;
+      position: absolute;
+      bottom: calc(14px + env(safe-area-inset-bottom));
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.14s both;
     }
 
-    /* badges */
-    .badge-row {
-      display:flex; align-items:center; gap:7px; justify-content:flex-end;
-    }
+    /* ── Wave badge ── */
     .wave-badge {
-      display:flex; align-items:center; gap:7px;
-      padding:5px 12px;
-      background:rgba(8,8,20,0.72); border:1px solid rgba(255,216,107,0.22);
-      backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-      border-radius:99px;
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 12px;
+      background: rgba(8,8,20,0.72); border: 1px solid rgba(255,216,107,0.22);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-radius: 99px;
+      align-self: flex-end;
     }
     .wave-dot {
-      width:6px; height:6px; border-radius:50%;
-      background:#ffd86b; box-shadow:0 0 6px #ffd86b;
-      flex-shrink:0; animation:pulse 2s ease-in-out infinite;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #ffd86b; box-shadow: 0 0 6px #ffd86b;
+      flex-shrink: 0; animation: pulse 2s ease-in-out infinite;
     }
-    .wave-text { font-size:11px; font-weight:700; letter-spacing:1.5px; color:#ffd86b; }
-    .fav-badge {
-      display:flex; align-items:center; gap:6px;
-      padding:5px 11px;
-      background:rgba(8,8,20,0.72); border:1px solid rgba(160,196,255,0.2);
-      backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-      border-radius:99px;
-    }
-    .fav-dot { width:6px; height:6px; border-radius:50%; background:#a0c4ff; box-shadow:0 0 5px #a0c4ff88; flex-shrink:0; }
-    .fav-text { font-size:10px; font-weight:700; letter-spacing:1px; color:#a0c4ff; }
+    .wave-text { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: #ffd86b; }
 
-    /* buttons */
-    .action-btns { display:flex; flex-direction:column; gap:8px; width:220px; }
-    .btn-start {
-      width:100%; padding:15px;
-      background:#6be07a; color:#0a1a0d;
-      font-size:16px; font-weight:800; letter-spacing:0.5px;
-      border:none; border-radius:12px; cursor:pointer;
-      font-family:inherit; touch-action:manipulation;
-      box-shadow:0 4px 24px rgba(107,224,122,0.42);
-      transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1), background 0.15s, box-shadow 0.15s;
+    /* ── Play dropdown wrapper ── */
+    .play-dropdown {
+      position: relative;
+      width: 220px;
     }
-    .btn-start:hover  { background:#7ef08b; box-shadow:0 6px 32px rgba(107,224,122,0.56); transform:scale(1.02); }
-    .btn-start:active { transform:scale(0.96); }
-    .btn-pvp {
-      width:100%; padding:12px 16px; margin-bottom:8px;
-      background:rgba(8,8,20,0.75); color:#a78bfa;
-      font-size:13px; font-weight:700; letter-spacing:0.5px;
-      border:1px solid rgba(167,139,250,0.3); border-radius:11px;
-      backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-      cursor:pointer; font-family:inherit; touch-action:manipulation;
-      transition:background 0.15s, border-color 0.15s;
+
+    /* ── Trigger button ── */
+    .btn-play-trigger {
+      width: 100%; padding: 14px 18px;
+      background: #6be07a; color: #0a1a0d;
+      font-size: 15px; font-weight: 800; letter-spacing: 0.5px;
+      border: none; border-radius: 12px;
+      cursor: pointer; font-family: inherit;
+      touch-action: manipulation;
+      box-shadow: 0 4px 24px rgba(107,224,122,0.42);
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, box-shadow 0.15s, transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
     }
-    .btn-pvp:hover  { background:rgba(167,139,250,0.14); border-color:rgba(167,139,250,0.55); }
-    .btn-pvp:active { transform:scale(0.97); }
-    .btn-secondary-row { display:flex; gap:8px; }
-    .btn-upgrade {
-      flex:1; padding:10px 12px;
-      background:rgba(8,8,20,0.75); color:#ffd86b;
-      font-size:11px; font-weight:700; letter-spacing:0.5px;
-      border:1px solid rgba(255,216,107,0.28); border-radius:11px;
-      backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-      cursor:pointer; font-family:inherit; touch-action:manipulation;
-      transition:background 0.15s, border-color 0.15s;
+    .btn-play-trigger:hover  { background: #7ef08b; box-shadow: 0 6px 32px rgba(107,224,122,0.56); }
+    .btn-play-trigger:active { transform: scale(0.97); }
+    .btn-play-trigger .chevron {
+      font-size: 10px; opacity: 0.6;
+      transition: transform 0.22s cubic-bezier(0.22,1,0.36,1);
     }
-    .btn-upgrade:hover  { background:rgba(255,216,107,0.14); border-color:rgba(255,216,107,0.5); }
-    .btn-upgrade:active { transform:scale(0.97); }
-    .btn-reset {
-      flex:1; padding:10px 12px;
-      background:rgba(8,8,20,0.6); color:rgba(255,255,255,0.3);
-      font-size:11px; font-weight:600; letter-spacing:0.3px;
-      border:1px solid rgba(255,255,255,0.1); border-radius:11px;
-      backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
-      cursor:pointer; font-family:inherit; touch-action:manipulation;
-      transition:color 0.15s, border-color 0.15s;
+    .play-dropdown.open .btn-play-trigger .chevron { transform: rotate(180deg); }
+
+    /* ── Dropdown menu ── */
+    .play-menu {
+      position: absolute;
+      bottom: calc(100% + 8px);
+      left: 0; right: 0;
+      background: rgba(8,8,20,0.96);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+      overflow: hidden;
+      /* closed state */
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.22s cubic-bezier(0.22,1,0.36,1);
     }
-    .btn-reset:hover  { color:rgba(255,255,255,0.55); border-color:rgba(255,255,255,0.22); }
-    .btn-reset:active { transform:scale(0.97); }
+    .play-dropdown.open .play-menu {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    /* ── Menu items ── */
+    .play-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 16px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border: none; background: transparent;
+      width: 100%; text-align: left; font-family: inherit;
+    }
+    .play-item + .play-item { border-top: none; }
+    .play-item:hover { background: rgba(255,255,255,0.05); }
+    .play-item:active { background: rgba(255,255,255,0.08); }
+
+    .pi-icon {
+      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .pi-icon.ai  { background: rgba(107,224,122,0.15); }
+    .pi-icon.pvp { background: rgba(167,139,250,0.15); }
+
+    .pi-text { flex: 1; }
+    .pi-title {
+      font-size: 14px; font-weight: 800; letter-spacing: 0.3px;
+      line-height: 1; margin-bottom: 3px;
+    }
+    .pi-title.ai  { color: #6be07a; }
+    .pi-title.pvp { color: #a78bfa; }
+    .pi-desc {
+      font-size: 9px; font-weight: 600; letter-spacing: 0.5px;
+      color: rgba(255,255,255,0.32);
+    }
+    .pi-badge {
+      font-size: 9px; font-weight: 700; letter-spacing: 1px;
+      padding: 2px 7px; border-radius: 99px; flex-shrink: 0;
+    }
+    .pi-badge.wave { background: rgba(255,216,107,0.12); color: #ffd86b; border: 1px solid rgba(255,216,107,0.25); }
+    .pi-badge.lan  { background: rgba(167,139,250,0.12); color: #a78bfa;  border: 1px solid rgba(167,139,250,0.25); }
+
+    /* ── AI section groups VS AI + reset as one unit ── */
+    .pi-ai-section {
+      background: rgba(107,224,122,0.03);
+    }
+    .pi-ai-section:hover { background: rgba(107,224,122,0.05); }
+
+    /* override individual hover on play-item inside the section */
+    .pi-ai-section .play-item:hover { background: transparent; }
+
+    /* ── Reset row inside dropdown ── */
+    .pi-reset-row {
+      padding: 0 16px 11px 62px;
+      position: relative;
+    }
+    .pi-reset-row::before {
+      content: '';
+      position: absolute;
+      left: 33px; top: 0; bottom: 11px;
+      width: 1px;
+      background: rgba(107,224,122,0.22);
+    }
+    .btn-reset-wave {
+      background: none; border: none;
+      color: rgba(255,255,255,0.28);
+      font-size: 9px; font-weight: 700; letter-spacing: 0.8px;
+      cursor: pointer; font-family: inherit;
+      padding: 3px 0 3px 6px;
+      touch-action: manipulation;
+      transition: color 0.15s;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .btn-reset-wave:hover  { color: rgba(255,100,100,0.7); }
+    .btn-reset-wave:active { color: rgba(255,100,100,0.95); }
+
+    /* ── Explicit divider between AI section and VS PLAYER ── */
+    .pi-section-divider {
+      height: 1px;
+      background: rgba(255,255,255,0.07);
+    }
+
+    /* ── Manage Character button ── */
+    .btn-manage {
+      width: 220px; padding: 12px 18px;
+      background: rgba(8,8,20,0.72);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      color: rgba(255,255,255,0.6);
+      font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+      cursor: pointer; font-family: inherit;
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      touch-action: manipulation;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+    }
+    .btn-manage:hover  { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.22); color: #fff; }
+    .btn-manage:active { transform: scale(0.97); }
 
     /* ── Transition ─────────────────────────────────── */
     #transition-out {
@@ -387,24 +471,44 @@
 
     <!-- ═══════ BOTTOM-RIGHT: ACTIONS ═══════ -->
     <div id="hud-actions">
-      <div class="badge-row">
-        <div class="wave-badge">
-          <div class="wave-dot"></div>
-          <span class="wave-text" id="wave-display">WAVE 1</span>
-        </div>
-        <div class="fav-badge" id="fav-badge" style="display:none">
-          <div class="fav-dot"></div>
-          <span class="fav-text" id="fav-text">—</span>
+
+      <!-- Play dropdown -->
+      <div class="play-dropdown" id="play-dropdown">
+        <button class="btn-play-trigger" id="btn-play-trigger">
+          ▶&nbsp; PLAY
+        </button>
+
+        <div class="play-menu" id="play-menu">
+          <!-- VS AI + Reset grouped -->
+          <div class="pi-ai-section">
+            <button class="play-item" id="btn-start">
+              <div class="pi-icon ai">⚔</div>
+              <div class="pi-text">
+                <div class="pi-title ai">VS AI</div>
+                <div class="pi-desc">ผู้เล่นคนเดียว · สู้กับ AI</div>
+              </div>
+              <span class="pi-badge wave" id="wave-badge-text">WAVE 1</span>
+            </button>
+            <div class="pi-reset-row">
+              <button class="btn-reset-wave" id="btn-reset">↺ Reset to Wave 1</button>
+            </div>
+          </div>
+          <div class="pi-section-divider"></div>
+          <!-- VS PLAYER -->
+          <button class="play-item" id="btn-pvp">
+            <div class="pi-icon pvp">🌐</div>
+            <div class="pi-text">
+              <div class="pi-title pvp">VS PLAYER</div>
+              <div class="pi-desc">เล่นกับเพื่อน · WiFi เดียวกัน</div>
+            </div>
+            <span class="pi-badge lan">LAN</span>
+          </button>
         </div>
       </div>
-      <div class="action-btns">
-        <button class="btn-start"   id="btn-start">▶  เริ่มเกม</button>
-        <button class="btn-pvp"     id="btn-pvp">⚔ VS PLAYER (LAN)</button>
-        <div class="btn-secondary-row">
-          <button class="btn-upgrade" id="btn-upgrade">⬆ UPGRADE</button>
-          <button class="btn-reset"   id="btn-reset">↺ RESET WAVE</button>
-        </div>
-      </div>
+
+      <!-- Manage Character button -->
+      <button class="btn-manage" id="btn-manage">🎖&nbsp; MANAGE CHARACTER</button>
+
     </div>
 
   </div>
@@ -430,15 +534,10 @@
       const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
       return m > 0 ? `${h}h ${m}m` : `${h}h`;
     }
-    function _favUnit(u) {
-      const e = Object.entries(u ?? {});
-      return e.length ? e.reduce((a, b) => b[1] > a[1] ? b : a)[0] : null;
-    }
 
     function renderProfile() {
       const p  = loadProfile();
       const wr = p.gamesPlayed > 0 ? Math.round(p.wins / p.gamesPlayed * 100) : 0;
-      const fav = _favUnit(p.unitUsage);
 
       document.getElementById('pw-avatar').textContent  = p.name.charAt(0);
       document.getElementById('pw-name').textContent    = p.name;
@@ -450,28 +549,32 @@
       document.getElementById('pw-units').textContent   = p.totalUnitsDeployed.toLocaleString();
       document.getElementById('pw-spawns').textContent  = p.totalSpawnsCaptured.toLocaleString();
       document.getElementById('pw-time').textContent    = _formatTime(p.playTimeSec);
-
-      const favEl = document.getElementById('fav-badge');
-      if (fav) {
-        document.getElementById('fav-text').textContent = `FAV · ${fav.toUpperCase()}`;
-        favEl.style.display = 'flex';
-      } else {
-        favEl.style.display = 'none';
-      }
     }
 
     const wave = parseInt(localStorage.getItem('rts_wave') || '1', 10);
-    document.getElementById('wave-display').textContent = `WAVE ${wave}`;
+    document.getElementById('wave-badge-text').textContent  = `WAVE ${wave}`;
     renderProfile();
 
     // ── Profile widget toggle ────────────────────────
-    const widget = document.getElementById('profile-widget');
+    const widget   = document.getElementById('profile-widget');
+    const dropdown = document.getElementById('play-dropdown');
+
     document.getElementById('pw-bar').addEventListener('click', e => {
       widget.classList.toggle('open');
+      dropdown.classList.remove('open');
       e.stopPropagation();
     });
+
+    // ── Play dropdown toggle ─────────────────────────
+    document.getElementById('btn-play-trigger').addEventListener('click', e => {
+      dropdown.classList.toggle('open');
+      widget.classList.remove('open');
+      e.stopPropagation();
+    });
+
     document.addEventListener('click', e => {
-      if (!widget.contains(e.target)) widget.classList.remove('open');
+      if (!widget.contains(e.target))   widget.classList.remove('open');
+      if (!dropdown.contains(e.target)) dropdown.classList.remove('open');
     });
 
     // ── Navigation ───────────────────────────────────
@@ -479,16 +582,22 @@
       document.getElementById('transition-out').classList.add('active');
       setTimeout(() => { location.href = href; }, delay);
     }
-    document.getElementById('btn-start').addEventListener('click',   () => goTo('game.html'));
+
+    document.getElementById('btn-start').addEventListener('click', () => {
+      localStorage.removeItem('pvp_mode');
+      localStorage.removeItem('pvp_role');
+      goTo('game.html');
+    });
     document.getElementById('btn-pvp').addEventListener('click', () => {
       localStorage.setItem('pvp_mode', '1');
       localStorage.removeItem('pvp_role');
       goTo('game.html', 0);
     });
-    document.getElementById('btn-upgrade').addEventListener('click', () => goTo('upgrade.html', 280));
-    document.getElementById('btn-reset').addEventListener('click', () => {
+    document.getElementById('btn-manage').addEventListener('click', () => goTo('upgrade.html', 280));
+    document.getElementById('btn-reset').addEventListener('click', e => {
+      e.stopPropagation();
       localStorage.removeItem('rts_wave');
-      document.getElementById('wave-display').textContent = 'WAVE 1';
+      document.getElementById('wave-badge-text').textContent = 'WAVE 1';
     });
 
     // ── Name modal ───────────────────────────────────
