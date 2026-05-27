@@ -330,20 +330,50 @@
 
     /* ── Manage Character button ── */
     .btn-manage {
-      width: 220px; padding: 12px 18px;
+      width: 220px; padding: 10px 14px;
       background: rgba(8,8,20,0.72);
-      border: 1px solid rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,216,107,0.18);
       border-radius: 12px;
-      color: rgba(255,255,255,0.6);
-      font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
       cursor: pointer; font-family: inherit;
       backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
       touch-action: manipulation;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
+      display: flex; align-items: center; gap: 11px;
+      position: relative; overflow: hidden;
+      transition: background 0.15s, border-color 0.2s, transform 0.15s;
     }
-    .btn-manage:hover  { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.22); color: #fff; }
+    .btn-manage::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+      background: linear-gradient(to bottom, #ffd86b, rgba(255,216,107,0.2));
+      border-radius: 12px 0 0 12px;
+    }
+    .btn-manage:hover  { background: rgba(255,216,107,0.06); border-color: rgba(255,216,107,0.35); }
     .btn-manage:active { transform: scale(0.97); }
+
+    .bm-icon {
+      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+      background: rgba(255,216,107,0.1);
+      border: 1px solid rgba(255,216,107,0.2);
+      display: flex; align-items: center; justify-content: center;
+      color: #ffd86b;
+    }
+    .bm-icon svg { width: 16px; height: 16px; }
+    .bm-text { flex: 1; text-align: left; }
+    .bm-label {
+      font-size: 8px; font-weight: 700; letter-spacing: 2px;
+      color: rgba(255,216,107,0.45);
+      line-height: 1; margin-bottom: 3px;
+    }
+    .bm-name {
+      font-size: 13px; font-weight: 800; letter-spacing: 0.3px;
+      color: rgba(255,255,255,0.75);
+      line-height: 1;
+    }
+    .bm-arrow {
+      font-size: 14px; color: rgba(255,216,107,0.3); flex-shrink: 0;
+      transition: transform 0.15s, color 0.15s;
+    }
+    .btn-manage:hover .bm-arrow { transform: translateX(2px); color: rgba(255,216,107,0.6); }
 
     /* ── Transition ─────────────────────────────────── */
     #transition-out {
@@ -507,7 +537,20 @@
       </div>
 
       <!-- Manage Character button -->
-      <button class="btn-manage" id="btn-manage">🎖&nbsp; MANAGE CHARACTER</button>
+      <button class="btn-manage" id="btn-manage">
+        <div class="bm-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="8" r="3.5" fill="currentColor"/>
+            <path d="M5 19c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            <path d="M18 2v4M16 4h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="bm-text">
+          <div class="bm-label">UPGRADE</div>
+          <div class="bm-name">Manage Character</div>
+        </div>
+        <span class="bm-arrow">›</span>
+      </button>
 
     </div>
 
