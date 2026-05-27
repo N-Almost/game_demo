@@ -191,12 +191,19 @@ function _renderGameOver(currentWave) {
     ? `<p class="go-gold"><span class="go-gold-coin">◆</span> +${session.goldEarned} GOLD</p>`
     : '';
 
+  const actions = won
+    ? `<div class="go-actions">
+         <button class="go-btn" id="btn-go-menu">หน้าหลัก</button>
+         <button class="go-btn go-btn-primary" id="btn-go-next">WAVE ${currentWave + 1} ▶</button>
+       </div>`
+    : `<p class="go-restart">แตะเพื่อเล่นใหม่</p>`;
+
   let html;
   if (state.timeUpWin) {
     const sub = isDraw && state.suddenDeath ? 'Sudden Death หมดเวลา — เสมอ' : 'ชนะด้วย Spawn HP สูงกว่า';
-    html = `${waveLine}<p class="go-label">TIME UP!</p><p class="go-winner" style="color:${c}">${msg}</p><p class="go-sub">${sub}</p>${goldLine}<p class="go-restart">แตะเพื่อเล่นใหม่</p>`;
+    html = `${waveLine}<p class="go-label">TIME UP!</p><p class="go-winner" style="color:${c}">${msg}</p><p class="go-sub">${sub}</p>${goldLine}${actions}`;
   } else {
-    html = `${waveLine}<p class="go-winner" style="color:${c}">${msg}</p>${goldLine}<p class="go-restart">แตะเพื่อเล่นใหม่</p>`;
+    html = `${waveLine}<p class="go-winner" style="color:${c}">${msg}</p>${goldLine}${actions}`;
   }
   if (overlayBody.innerHTML !== html) overlayBody.innerHTML = html;
   overlayEl.classList.add('visible');

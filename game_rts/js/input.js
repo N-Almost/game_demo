@@ -140,8 +140,22 @@ export function setupCanvasInput(canvas) {
 
   const overlay = document.getElementById('gameover-overlay');
   if (overlay) {
-    overlay.addEventListener('click', () => _handleTap(0, 0));
-    overlay.addEventListener('touchend', e => { e.preventDefault(); _handleTap(0, 0); }, { passive: false });
+    const _overlayNav = el => {
+      const btn = el?.closest?.('button') ?? el;
+      if (btn?.id === 'btn-go-next') { location.reload(); return; }
+      if (btn?.id === 'btn-go-menu') { location.href = 'menu.html'; return; }
+      // Loss / draw: tap anywhere restarts from wave 1
+      if (state.winner !== 'player') {
+        localStorage.setItem('rts_wave', 1);
+        location.href = 'menu.html';
+      }
+    };
+    overlay.addEventListener('click', e => _overlayNav(e.target));
+    overlay.addEventListener('touchend', e => {
+      e.preventDefault();
+      const t = e.changedTouches[0];
+      _overlayNav(document.elementFromPoint(t.clientX, t.clientY));
+    }, { passive: false });
   }
 }
 
@@ -174,9 +188,11 @@ export function bindCommandButtons() {
 
 function _handleTap(clientX, clientY) {
   if (state.gameOver) {
-    const next = state.winner === 'player' ? cfg.currentWave + 1 : 1;
-    localStorage.setItem('rts_wave', next);
-    location.href = 'menu.html';
+    // Win: handled by overlay buttons. Loss/draw: tap to restart.
+    if (state.winner !== 'player') {
+      localStorage.setItem('rts_wave', 1);
+      location.href = 'menu.html';
+    }
     return;
   }
 
