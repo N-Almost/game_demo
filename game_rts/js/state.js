@@ -31,6 +31,10 @@ export const state = {
   enemySpawnTimer: 0,
   rallyPoint:      null,   // reference to a SPAWN_POINTS entry (non-player) to advance toward
   defendMode:      false,  // when true, units hold at nearest player spawn
+  // PvP fields
+  enemyCost:        0,
+  enemyRallyPoint:  null,  // enemy side rally (PvP guest controls)
+  enemyDefendMode:  false, // enemy side defend (PvP guest controls)
 };
 
 export const session = {

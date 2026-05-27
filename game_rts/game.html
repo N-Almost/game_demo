@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0a0a12" />
+  <link rel="manifest" href="manifest.json" />
+  <title>Simple RTS</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="portrait-warning">
+    <div class="rotate-icon">&#8635;</div>
+    <p>กรุณาหมุนหน้าจอเป็นแนวนอน</p>
+  </div>
+
+  <div id="app">
+
+    <!-- ── Full-screen canvas ───────────────────────── -->
+    <div id="canvas-wrapper">
+      <canvas id="gameCanvas" width="960" height="640"></canvas>
+      <canvas id="threeCanvas" width="960" height="640"></canvas>
+      <div id="unit-monitor"></div>
+      <div id="loading-screen">
+        <div class="loading-title">Simple <span>RTS</span></div>
+        <div class="loading-bar-wrap"><div class="loading-bar-fill"></div></div>
+        <div class="loading-label">LOADING</div>
+      </div>
+      <div id="gameover-overlay">
+        <div id="gameover-body"></div>
+      </div>
+
+      <!-- ── PvP lobby (shown before game starts when pvp_mode is set) ── -->
+      <div id="pvp-lobby">
+        <div id="pvp-card">
+          <p class="pvp-eyebrow">SIMPLE RTS — PvP</p>
+          <h2 class="pvp-title">LAN / P2P</h2>
+          <div class="pvp-tabs">
+            <button class="pvp-tab active" id="pvp-tab-host">สร้างเกม (Host)</button>
+            <button class="pvp-tab"        id="pvp-tab-guest">เข้าร่วม (Guest)</button>
+          </div>
+
+          <!-- HOST panel -->
+          <div class="pvp-panel active" id="pvp-panel-host">
+            <div id="pvp-h1">
+              <button class="pvp-btn primary" id="pvp-btn-create">สร้างห้อง</button>
+              <p class="pvp-status" id="pvp-hs1"></p>
+            </div>
+            <div id="pvp-h2" style="display:none">
+              <p class="pvp-label">รหัสห้อง — บอกเพื่อน</p>
+              <div class="pvp-code-display" id="pvp-room-code">------</div>
+              <button class="pvp-btn secondary" id="pvp-copy-code">คัดลอกรหัส</button>
+              <p class="pvp-status" id="pvp-hs2"></p>
+            </div>
+          </div>
+
+          <!-- GUEST panel -->
+          <div class="pvp-panel" id="pvp-panel-guest">
+            <p class="pvp-label">รหัสห้อง 6 หลัก</p>
+            <input class="pvp-code-input" id="pvp-code-in"
+              type="tel" inputmode="numeric" pattern="[0-9]*"
+              maxlength="6" placeholder="000000" autocomplete="off">
+            <button class="pvp-btn primary" id="pvp-btn-join" disabled>เข้าร่วม</button>
+            <p class="pvp-status" id="pvp-gs1"></p>
+          </div>
+
+          <button class="pvp-btn ghost" id="pvp-btn-back">← ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Top-left: cost + unit count ─────────────── -->
+    <div id="hud-tl">
+      <div id="cost-display">
+        <svg class="cost-coin" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="8.5" fill="rgba(255,216,107,0.18)" stroke="#ffd86b" stroke-width="1.5"/>
+          <circle cx="10" cy="10" r="4.5" fill="rgba(255,216,107,0.35)"/>
+        </svg>
+        <div class="cost-body">
+          <span id="cost-value">10</span>
+          <span id="cost-income">+0/s</span>
+        </div>
+      </div>
+      <div class="hud-tl-sep"></div>
+      <div id="unit-count">
+        <span id="unit-val">0/5</span>
+        <span class="hud-sublabel">UNITS</span>
+      </div>
+    </div>
+
+    <!-- ── Top-center: timer ────────────────────────── -->
+    <div id="hud-tc">
+      <div id="timer-block">
+        <div class="tb-header">
+          <div class="tb-wave">
+            <span class="tb-wave-pip"></span>
+            <span id="wave-label">WAVE 1</span>
+          </div>
+          <span id="timer-label">TIME</span>
+        </div>
+        <span id="timer">3:00</span>
+        <div id="hp-gauge-wrap">
+          <div class="tb-score tb-score-p">
+            <span id="hp-gauge-p">0</span>
+            <span class="tb-score-lbl">PLAYER</span>
+          </div>
+          <div id="hp-gauge">
+            <div id="hp-gauge-fill-p"></div>
+            <div id="hp-gauge-fill-n"></div>
+            <div id="hp-gauge-fill-e"></div>
+          </div>
+          <div class="tb-score tb-score-e">
+            <span id="hp-gauge-e">0</span>
+            <span class="tb-score-lbl">ENEMY</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Bottom: action bar ───────────────────────── -->
+    <div id="hud-bottom">
+      <div class="hud-group">
+        <div class="hud-group-label">UNIT</div>
+        <div id="unit-buttons"><!-- populated from units.json --></div>
+      </div>
+      <span class="btn-divider"></span>
+      <div class="hud-group">
+        <div class="hud-group-label">BUILDER</div>
+        <div id="building-buttons"><!-- populated from buildings.json --></div>
+      </div>
+      <span class="btn-divider"></span>
+      <div class="hud-group">
+        <div class="hud-group-label">COMMAND</div>
+        <div id="command-buttons">
+          <button id="btn-defend" class="cmd-card">
+            <div class="cmd-card-top">
+              <div class="cmd-card-icon">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L4 7v5c0 5.25 3.5 9.74 8 11 4.5-1.26 8-5.75 8-11V7Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="cmd-card-label">DEFEND</div>
+          </button>
+          <div id="rally-card" class="cmd-card rally-card">
+            <div class="cmd-card-top">
+              <div class="cmd-card-icon">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M5 22V4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 4h10l-3.5 5 3.5 5H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div id="rally-idle" class="cmd-card-label rally-idle">RALLY</div>
+            <div id="rally-active" class="rally-active">
+              <span class="rally-active-label">ON</span>
+              <button id="btn-cancel-rally" class="rally-cancel-btn">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span id="hint-text">เลือกยูนิต/สิ่งปลูกสร้าง · แตะ spawn ศัตรูเพื่อ Rally</span>
+    </div>
+
+  </div>
+
+  <script type="module" src="renderer.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

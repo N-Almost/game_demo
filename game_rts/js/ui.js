@@ -1,6 +1,7 @@
 import { state, session, SPAWN_POINTS } from './state.js';
 import { cfg }                  from './config.js';
 import { getEffectiveMaxUnits, getCooldownRatio, getCooldownRemaining } from './units.js';
+import { getEnemyCooldownRatio, getEnemyCooldownRemaining }             from './enemies.js';
 
 const ABILITY_ICONS = {
   armor:  `<svg viewBox="0 0 24 28" fill="none"><path d="M12 2L22 6V14C22 20.5 17.2 25 12 27C6.8 25 2 20.5 2 14V6Z" fill="rgba(255,255,255,0.92)"/><path d="M8 14l3 3 5-6" stroke="rgba(0,0,0,0.35)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
@@ -86,15 +87,19 @@ function _renderCostDisplay() {
   const valEl = document.getElementById('cost-value');
   const incEl = document.getElementById('cost-income');
   if (!valEl || !incEl) return;
-  const spawnRate = SPAWN_POINTS.filter(p => p.owner === 'player').length;
-  const farmBonus = state.buildings.filter(b => b.owner === 'player' && b.effect === 'income').reduce((s, b) => s + b.effectValue, 0);
-  valEl.textContent = state.cost;
+  const isGuest = localStorage.getItem('pvp_role') === 'guest';
+  const side    = isGuest ? 'enemy' : 'player';
+  const spawnRate = SPAWN_POINTS.filter(p => p.owner === side).length;
+  const farmBonus = state.buildings.filter(b => b.owner === side && b.effect === 'income').reduce((s, b) => s + b.effectValue, 0);
+  valEl.textContent = isGuest ? state.enemyCost : state.cost;
   incEl.textContent = `+${spawnRate + farmBonus}/s`;
 }
 
 function _renderUnitCount() {
   const el = document.getElementById('unit-val');
-  if (el) el.textContent = `${state.units.length}/${getEffectiveMaxUnits()}`;
+  if (!el) return;
+  const isGuest = localStorage.getItem('pvp_role') === 'guest';
+  el.textContent = `${isGuest ? state.enemies.length : state.units.length}/${getEffectiveMaxUnits()}`;
 }
 
 function _renderUnitMonitor() {
@@ -179,24 +184,36 @@ function _renderGameOver(currentWave) {
   if (!overlayEl || !overlayBody) return;
   if (!state.gameOver) { overlayEl.classList.remove('visible'); return; }
 
-  const won    = state.winner === 'player';
-  const isDraw = state.winner === 'draw';
-  const c      = won ? '#6be07a' : isDraw ? '#aaaaaa' : '#ff6b6b';
-  const msg    = won ? 'PLAYER WINS!' : isDraw ? 'DRAW!' : 'ENEMY WINS!';
-  const waveLine = won
+  const isPvp   = localStorage.getItem('pvp_mode') === '1';
+  const isGuest = localStorage.getItem('pvp_role') === 'guest';
+  const isDraw  = state.winner === 'draw';
+  const isDisconnect = state.winner === 'disconnect';
+
+  // Guest's win = host's "enemy wins"
+  const won = isPvp
+    ? (isGuest ? state.winner === 'enemy' : state.winner === 'player')
+    : state.winner === 'player';
+
+  const c   = isDisconnect ? '#aaaaaa' : won ? '#6be07a' : isDraw ? '#aaaaaa' : '#ff6b6b';
+  const msg = isDisconnect ? 'DISCONNECTED'
+            : won  ? 'YOU WIN!'
+            : isDraw ? 'DRAW!'
+            : 'YOU LOSE!';
+
+  const waveLine = isPvp ? '' : won
     ? `<p class="go-wave">WAVE ${currentWave} CLEAR → WAVE ${currentWave + 1}</p>`
     : `<p class="go-wave">WAVE ${currentWave} — เริ่มใหม่ที่ WAVE 1</p>`;
 
-  const goldLine = won && session.goldEarned > 0
+  const goldLine = !isPvp && won && session.goldEarned > 0
     ? `<p class="go-gold"><span class="go-gold-coin">◆</span> +${session.goldEarned} GOLD</p>`
     : '';
 
-  const actions = won
+  const actions = !isPvp && won
     ? `<div class="go-actions">
          <button class="go-btn" id="btn-go-menu">หน้าหลัก</button>
          <button class="go-btn go-btn-primary" id="btn-go-next">WAVE ${currentWave + 1} ▶</button>
        </div>`
-    : `<p class="go-restart">แตะเพื่อเล่นใหม่</p>`;
+    : `<p class="go-restart">แตะเพื่อกลับหน้าหลัก</p>`;
 
   let html;
   if (state.timeUpWin) {
@@ -210,9 +227,10 @@ function _renderGameOver(currentWave) {
 }
 
 function _renderCooldowns() {
+  const isGuest = localStorage.getItem('pvp_role') === 'guest';
   document.querySelectorAll('.unit-btn').forEach(btn => {
     const type    = btn.dataset.type;
-    const ratio   = getCooldownRatio(type);
+    const ratio   = isGuest ? getEnemyCooldownRatio(type)     : getCooldownRatio(type);
     const overlay = btn.querySelector('.unit-btn-cooldown');
     const fill    = btn.querySelector('.unit-btn-cooldown-fill');
     const text    = btn.querySelector('.unit-btn-cooldown-text');
@@ -221,7 +239,7 @@ function _renderCooldowns() {
     if (ratio > 0) {
       overlay.classList.add('active');
       fill.style.height = (ratio * 100).toFixed(1) + '%';
-      const rem = getCooldownRemaining(type);
+      const rem = isGuest ? getEnemyCooldownRemaining(type) : getCooldownRemaining(type);
       text.textContent = rem > 0.05 ? rem.toFixed(1) : '';
     } else {
       overlay.classList.remove('active');
@@ -230,9 +248,10 @@ function _renderCooldowns() {
 }
 
 function _renderCommandState() {
+  const isGuest = localStorage.getItem('pvp_role') === 'guest';
   const defendBtn = document.getElementById('btn-defend');
-  if (defendBtn) defendBtn.classList.toggle('active', state.defendMode);
+  if (defendBtn) defendBtn.classList.toggle('active', isGuest ? state.enemyDefendMode : state.defendMode);
 
   const rallyCard = document.getElementById('rally-card');
-  if (rallyCard) rallyCard.classList.toggle('on', !!state.rallyPoint);
+  if (rallyCard) rallyCard.classList.toggle('on', !!(isGuest ? state.enemyRallyPoint : state.rallyPoint));
 }

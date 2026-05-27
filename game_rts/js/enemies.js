@@ -2,6 +2,62 @@ import { state, SPAWN_POINTS }                                   from './state.j
 import { cfg }                                                    from './config.js';
 import { findNearestEnemyUnit, findNearestSpawnPoint, hasLOS }    from './helpers.js';
 
+// ── Enemy spawn cooldowns (PvP guest side) ────────────────────────────────────
+
+const _enemyCooldowns = new Map();
+
+export function tickEnemySpawnCooldowns(dt) {
+  for (const [type, remaining] of _enemyCooldowns) {
+    const next = remaining - dt;
+    if (next <= 0) _enemyCooldowns.delete(type);
+    else           _enemyCooldowns.set(type, next);
+  }
+}
+
+export function getEnemyCooldownRatio(type) {
+  const proto = cfg.protos[type];
+  if (!proto?.cooldown) return 0;
+  return (_enemyCooldowns.get(type) ?? 0) / proto.cooldown;
+}
+
+export function getEnemyCooldownRemaining(type) {
+  return _enemyCooldowns.get(type) ?? 0;
+}
+
+export function setEnemyCooldowns(entries) {
+  _enemyCooldowns.clear();
+  for (const [t, rem] of Object.entries(entries)) {
+    if (rem > 0) _enemyCooldowns.set(t, rem);
+  }
+}
+
+// Called by PvP host when guest sends a spawn command
+export function spawnEnemyUnit(type, x, y) {
+  const proto = cfg.enemyProtos[type] ?? cfg.enemyProtos[Object.keys(cfg.enemyProtos)[0]];
+  if (!proto) return false;
+  const cost = proto.cost ?? cfg.protos[type]?.cost ?? 0;
+  if (state.enemyCost < cost) return false;
+  if (state.enemies.length >= cfg.enemyMaxUnits) return false;
+  if (_enemyCooldowns.has(type)) return false;
+  state.enemyCost -= cost;
+  const cooldown = cfg.protos[type]?.cooldown ?? 0;
+  if (cooldown > 0) _enemyCooldowns.set(type, cooldown);
+  state.enemies.push({
+    id: state.nextId++,
+    type, x, y, vx: 0, vy: 0,
+    radius: proto.radius, color: proto.color,
+    speed:           proto.speed,
+    range:           proto.range,
+    attackRate:      proto.attackRate,
+    projectileSpeed: proto.projectileSpeed,
+    damage:          proto.damage,
+    hp:              proto.maxHp, maxHp: proto.maxHp,
+    ability: proto.ability, abilityValue: proto.abilityValue ?? 0,
+    attackTimer: 0,
+  });
+  return true;
+}
+
 export function spawnEnemies(dt) {
   const enemySpawns = SPAWN_POINTS.filter(p => p.owner === 'enemy');
   if (!enemySpawns.length) return;
@@ -48,7 +104,24 @@ export function updateEnemies(dt) {
       (nearestFriendly    && friendDist <= e.range && hasLOS(e.x, e.y, nearestFriendly.x, nearestFriendly.y)) ||
       (nearestPlayerSpawn && spawnDist  <= e.range && hasLOS(e.x, e.y, nearestPlayerSpawn.x, nearestPlayerSpawn.y));
 
-    _moveEnemy(e, dt, nearestFriendly, friendDist, nearestPlayerSpawn, inAtkRange);
+    // PvP: respect enemyRallyPoint and enemyDefendMode (mirrors player unit AI)
+    const rally  = state.enemyRallyPoint;
+    const defend = state.enemyDefendMode;
+
+    let moveTarget = nearestPlayerSpawn;
+    if (rally) moveTarget = rally;
+    if (defend) {
+      // Hold at nearest enemy spawn
+      const ownSpawn = findNearestSpawnPoint(e.x, e.y, 'player'); // nearest player-side spawn = "enemy" territory target becomes own territory
+      const nearestEnemyOwn = SPAWN_POINTS.filter(p => p.owner === 'enemy')
+        .reduce((best, p) => {
+          const d = Math.hypot(p.x - e.x, p.y - e.y);
+          return (!best || d < best.dist) ? { p, dist: d } : best;
+        }, null);
+      moveTarget = nearestEnemyOwn?.p ?? nearestPlayerSpawn;
+    }
+
+    _moveEnemy(e, dt, nearestFriendly, friendDist, moveTarget, inAtkRange);
     _resolveWallCollisions(e);
     _pushApart(e);
     _tryAttack(e, dt, nearestFriendly, friendDist, nearestPlayerSpawn, spawnDist);

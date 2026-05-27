@@ -866,15 +866,15 @@ function syncDamageNumbers(damageNumbers) {
   }
 }
 
-function syncSpawnPoints(_spawnPoints, selectedUnitType, rallyPoint, defendMode, now) {
+function syncSpawnPoints(_spawnPoints, selectedUnitType, rallyPoint, defendMode, now, myOwner = 'player') {
   for (const { disc, ring, arcCtx, arcTex, pin, sp } of spawnMeshes) {
-    const isRally  = sp === rallyPoint;
-    const isPlayer = sp.owner === 'player';
+    const isRally   = sp === rallyPoint;
+    const isMySpawn = sp.owner === myOwner;
 
-    const hex = isRally  ? 0xffaa00
-              : isPlayer ? 0x6be07a
-              : sp.owner === 'enemy' ? 0xff7878
-              :             0xd4af37;
+    const hex = isRally      ? 0xffaa00
+              : isMySpawn    ? 0x6be07a
+              : sp.owner !== 'neutral' ? 0xff7878
+              :                0xd4af37;
     disc.material.color.setHex(hex);
     disc.material.emissive.setHex(hex);
     ring.material.color.setHex(hex);
@@ -888,18 +888,16 @@ function syncSpawnPoints(_spawnPoints, selectedUnitType, rallyPoint, defendMode,
     pin.visible = isRally;
     if (isRally) {
       pin.position.y = 38 + Math.sin(now / 380) * 7;
-      pin.rotation.y = now / 1200;   // slow spin so it's always readable in iso view
+      pin.rotation.y = now / 1200;
 
-      // Fast orange pulse for rally target ring
       const pulse = (Math.sin(now / 180) + 1) / 2;
       ring.scale.set(1 + pulse * 0.55, 1, 1 + pulse * 0.55);
       ring.material.opacity = 0.45 + pulse * 0.55;
-    } else if (isPlayer && defendMode) {
-      // Slow blue-ish pulse for defended spawns
+    } else if (isMySpawn && defendMode) {
       const pulse = (Math.sin(now / 700) + 1) / 2;
       ring.scale.set(1 + pulse * 0.12, 1, 1 + pulse * 0.12);
       ring.material.opacity = 0.55 + pulse * 0.25;
-    } else if (isPlayer && selectedUnitType) {
+    } else if (isMySpawn && selectedUnitType) {
       const pulse = (Math.sin(now / 280) + 1) / 2;
       ring.scale.set(1 + pulse * 0.3, 1, 1 + pulse * 0.3);
       ring.material.opacity = 0.3 + pulse * 0.55;
@@ -1040,15 +1038,24 @@ async function init(_gameCanvas, spawnPoints, unitList = [], walls = [], enemyUn
   buildWalls(walls);
 }
 
-function render(state, selectedUnitType, spawnPoints, now) {
+function render(state, selectedUnitType, spawnPoints, now, isGuestView = false) {
   const delta = lastTs ? Math.min((now - lastTs) / 1000, 0.05) : 0;
   lastTs = now;
-  syncUnits(state.units, state.enemies, delta);
+
+  // Guest's own units live in state.enemies; swap so they appear green (friendly)
+  const myUnits  = isGuestView ? state.enemies : state.units;
+  const oppUnits = isGuestView ? state.units   : state.enemies;
+  syncUnits(myUnits, oppUnits, delta);
+
+  const rallyPoint = isGuestView ? state.enemyRallyPoint : state.rallyPoint;
+  const defendMode = isGuestView ? state.enemyDefendMode : state.defendMode;
+  const myOwner    = isGuestView ? 'enemy' : 'player';
+
   syncBuildings(state.buildings ?? []);
   syncProjectiles(state.projectiles);
   syncExplosions(state.explosions);
   syncDamageNumbers(state.damageNumbers);
-  syncSpawnPoints(spawnPoints, selectedUnitType, state.rallyPoint, state.defendMode, now);
+  syncSpawnPoints(spawnPoints, selectedUnitType, rallyPoint, defendMode, now, myOwner);
   threeRenderer.render(scene, camera);
 }
 

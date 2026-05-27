@@ -6,6 +6,9 @@ import { spawnUnit }           from './units.js';
 export let selectedUnitType     = null;
 export let selectedBuildingType = null;
 
+let _pvpSend = null;
+export function setPvpSend(fn) { _pvpSend = fn; }
+
 // ── Button event binding ──────────────────────────────────────────────────────
 
 export function bindUnitButtons() {
@@ -143,11 +146,12 @@ export function setupCanvasInput(canvas) {
     const _overlayNav = el => {
       const btn = el?.closest?.('button') ?? el;
       if (btn?.id === 'btn-go-next') { location.reload(); return; }
-      if (btn?.id === 'btn-go-menu') { location.href = 'menu.html'; return; }
-      // Loss / draw: tap anywhere restarts from wave 1
+      if (btn?.id === 'btn-go-menu') { location.href = 'index.html'; return; }
+      if (localStorage.getItem('pvp_mode') === '1') { location.href = 'index.html'; return; }
+      // VS AI loss / draw: tap anywhere restarts from wave 1
       if (state.winner !== 'player') {
         localStorage.setItem('rts_wave', 1);
-        location.href = 'menu.html';
+        location.href = 'index.html';
       }
     };
     overlay.addEventListener('click', e => _overlayNav(e.target));
@@ -163,6 +167,10 @@ export function bindCommandButtons() {
   const defendBtn = document.getElementById('btn-defend');
   if (defendBtn) {
     defendBtn.addEventListener('click', () => {
+      if (_pvpSend) {
+        _pvpSend({ t: 'df', v: state.enemyDefendMode ? 0 : 1 });
+        return;
+      }
       state.defendMode = !state.defendMode;
       if (state.defendMode) {
         state.rallyPoint = null;
@@ -176,7 +184,8 @@ export function bindCommandButtons() {
   const cancelBtn = document.getElementById('btn-cancel-rally');
   if (cancelBtn) {
     cancelBtn.addEventListener('click', e => {
-      e.stopPropagation(); // don't bubble to canvas
+      e.stopPropagation();
+      if (_pvpSend) { _pvpSend({ t: 'ra', si: null }); return; }
       state.rallyPoint = null;
       _setHint(_idleHint());
     });
@@ -188,10 +197,10 @@ export function bindCommandButtons() {
 
 function _handleTap(clientX, clientY) {
   if (state.gameOver) {
-    // Win: handled by overlay buttons. Loss/draw: tap to restart.
+    if (localStorage.getItem('pvp_mode') === '1') { location.href = 'index.html'; return; }
     if (state.winner !== 'player') {
       localStorage.setItem('rts_wave', 1);
-      location.href = 'menu.html';
+      location.href = 'index.html';
     }
     return;
   }
@@ -200,41 +209,52 @@ function _handleTap(clientX, clientY) {
   if (!pt) return;
 
   if (selectedUnitType || selectedBuildingType) {
-    // Place unit / building at nearest player spawn
-    const nearest = _nearestPlayerSpawnTo(pt.x, pt.y);
+    const myOwner = _pvpSend ? 'enemy' : 'player';
+    const nearest = _nearestOwnerSpawnTo(pt.x, pt.y, myOwner);
     if (!nearest || Math.hypot(nearest.x - pt.x, nearest.y - pt.y) >= SPAWN_RADIUS + 60) return;
-    if (selectedBuildingType) {
-      if (_placeBuilding(selectedBuildingType, nearest) && navigator.vibrate) navigator.vibrate(30);
+    if (_pvpSend) {
+      const si = SPAWN_POINTS.indexOf(nearest);
+      if (selectedBuildingType) _pvpSend({ t: 'bl', bt: selectedBuildingType, si });
+      else _pvpSend({ t: 'sp', u: selectedUnitType, si });
+      if (navigator.vibrate) navigator.vibrate(30);
     } else {
-      if (spawnUnit(selectedUnitType, nearest.x, nearest.y) && navigator.vibrate) navigator.vibrate(30);
+      if (selectedBuildingType) {
+        if (_placeBuilding(selectedBuildingType, nearest) && navigator.vibrate) navigator.vibrate(30);
+      } else {
+        if (spawnUnit(selectedUnitType, nearest.x, nearest.y) && navigator.vibrate) navigator.vibrate(30);
+      }
     }
     return;
   }
 
-  // No selection — try to set / clear rally point on a non-player spawn
+  // No selection — try to set / clear rally point on a non-own spawn
   _trySetRally(pt.x, pt.y);
 }
 
 function _trySetRally(x, y) {
+  const myOwner = _pvpSend ? 'enemy' : 'player';
   let nearest = null, nearestDist = Infinity;
   for (const p of SPAWN_POINTS) {
-    if (p.owner === 'player') continue;
+    if (p.owner === myOwner) continue;
     const d = Math.hypot(p.x - x, p.y - y);
     if (d < nearestDist) { nearest = p; nearestDist = d; }
   }
   if (!nearest || nearestDist >= SPAWN_RADIUS + 60) return;
 
-  // Toggle: tap same spawn again to cancel rally
-  state.rallyPoint = (state.rallyPoint === nearest) ? null : nearest;
-  // Rally cancels defend mode
-  if (state.rallyPoint) state.defendMode = false;
+  if (_pvpSend) {
+    const isToggleOff = state.enemyRallyPoint === nearest;
+    _pvpSend({ t: 'ra', si: isToggleOff ? null : SPAWN_POINTS.indexOf(nearest) });
+  } else {
+    state.rallyPoint = (state.rallyPoint === nearest) ? null : nearest;
+    if (state.rallyPoint) state.defendMode = false;
+  }
   if (navigator.vibrate) navigator.vibrate(18);
 }
 
-function _nearestPlayerSpawnTo(x, y) {
+function _nearestOwnerSpawnTo(x, y, owner) {
   let nearest = null, nearestDist = Infinity;
   for (const p of SPAWN_POINTS) {
-    if (p.owner !== 'player') continue;
+    if (p.owner !== owner) continue;
     const d = Math.hypot(p.x - x, p.y - y);
     if (d < nearestDist) { nearest = p; nearestDist = d; }
   }
