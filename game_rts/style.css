@@ -614,111 +614,199 @@ html, body {
 }
 .rally-cancel-btn:active { background: rgba(255, 153, 0, 0.45); }
 
+/* ── Timer block — AAA redesign ──────────────────────── */
 #timer-block {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 6px 18px 8px;
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  backdrop-filter: blur(4px);
+  gap: 5px;
+  padding: 8px 18px 10px;
+  min-width: 210px;
+  flex-shrink: 0;
   pointer-events: none;
-  z-index: 10;
+  background: linear-gradient(135deg,
+    rgba(107,224,122,0.06) 0%,
+    rgba(8,8,20,0.78) 40%,
+    rgba(8,8,20,0.78) 60%,
+    rgba(224,107,107,0.06) 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-#wave-label {
-  font-size: 10px;
-  font-weight: 800;
-  color: #ffd86b;
-  letter-spacing: 3px;
-  margin-bottom: 1px;
+/* Side accent lines: green left / red right */
+#timer-block::before,
+#timer-block::after {
+  content: '';
+  position: absolute;
+  top: 18%; bottom: 18%;
+  width: 2px;
+  border-radius: 1px;
+}
+#timer-block::before {
+  left: 0;
+  background: linear-gradient(to bottom, transparent, #6be07a, transparent);
+  box-shadow: 0 0 8px #6be07a99;
+}
+#timer-block::after {
+  right: 0;
+  background: linear-gradient(to bottom, transparent, #e06b6b, transparent);
+  box-shadow: 0 0 8px #e06b6b99;
 }
 
-#timer {
-  font-size: 28px;
-  font-weight: 700;
-  color: #fff;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 2px;
-  line-height: 1;
+/* Header row */
+.tb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
 }
 
-#timer-label {
-  font-size: 9px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 3px;
-}
-
-#timer.warning {
-  color: #ff6b6b;
-  animation: timerPulse 0.45s ease-in-out infinite alternate;
-}
-
-#timer-block.sudden-death {
-  background: rgba(180, 60, 0, 0.75);
-  border-color: rgba(255, 140, 40, 0.6);
-  box-shadow: 0 0 18px rgba(255, 120, 0, 0.45);
-}
-
-#timer-block.sudden-death #timer-label {
-  color: rgba(255, 200, 100, 0.85);
-  letter-spacing: 1.5px;
-}
-
-#timer-block.sudden-death #timer {
-  color: #ffb347;
-  animation: timerPulse 0.6s ease-in-out infinite alternate;
-}
-
-/* Spawn HP gauge */
-#hp-gauge-wrap {
+.tb-wave {
   display: flex;
   align-items: center;
   gap: 5px;
-  width: 100%;
-  margin-top: 6px;
 }
 
-#hp-gauge-p,
-#hp-gauge-e {
+.tb-wave-pip {
+  width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0;
+  background: #6be07a;
+  box-shadow: 0 0 6px #6be07a;
+  animation: tbPip 2.4s ease-in-out infinite;
+}
+
+@keyframes tbPip {
+  0%,100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: 0.3; transform: scale(0.65); }
+}
+
+#wave-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  color: rgba(255,255,255,0.65);
+}
+
+#timer-label {
   font-size: 8px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  min-width: 18px;
-  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.22);
 }
 
-#hp-gauge-p { color: #6be07a; text-align: left; }
-#hp-gauge-e { color: #e06b6b; text-align: right; }
+/* Main timer digit */
+#timer {
+  font-size: 34px;
+  font-weight: 900;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 3px;
+  line-height: 1;
+  text-shadow: 0 0 28px rgba(255,255,255,0.14);
+}
+
+#timer.warning {
+  color: #ff5f5f;
+  text-shadow: 0 0 24px rgba(255,95,95,0.5);
+  animation: timerPulse 0.45s ease-in-out infinite alternate;
+}
+
+/* Territory gauge */
+#hp-gauge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+}
+
+.tb-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  flex-shrink: 0;
+  min-width: 24px;
+}
+
+#hp-gauge-p {
+  font-size: 12px; font-weight: 800;
+  color: #6be07a; font-variant-numeric: tabular-nums;
+  line-height: 1; text-align: center;
+}
+
+#hp-gauge-e {
+  font-size: 12px; font-weight: 800;
+  color: #e06b6b; font-variant-numeric: tabular-nums;
+  line-height: 1; text-align: center;
+}
+
+.tb-score-lbl {
+  font-size: 6px; font-weight: 700;
+  letter-spacing: 1px;
+  color: rgba(255,255,255,0.2);
+  white-space: nowrap;
+}
 
 #hp-gauge {
   flex: 1;
   min-width: 80px;
-  height: 5px;
-  border-radius: 3px;
+  height: 7px;
+  border-radius: 4px;
   overflow: hidden;
   display: flex;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255,255,255,0.06);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
-#hp-gauge-fill-p,
-#hp-gauge-fill-n,
+#hp-gauge-fill-p {
+  height: 100%; width: 0%;
+  background: linear-gradient(to right, #38b048, #6be07a);
+  box-shadow: 2px 0 10px rgba(107,224,122,0.55);
+  transition: width 0.3s ease;
+}
+#hp-gauge-fill-n {
+  height: 100%; width: 0%;
+  background: #c9a130;
+  transition: width 0.3s ease;
+}
 #hp-gauge-fill-e {
-  height: 100%;
-  transition: width 0.25s ease;
-  width: 0%;
+  height: 100%; width: 0%;
+  background: linear-gradient(to left, #a02020, #e06b6b);
+  box-shadow: -2px 0 10px rgba(224,107,107,0.55);
+  transition: width 0.3s ease;
 }
 
-#hp-gauge-fill-p { background: #6be07a; }
-#hp-gauge-fill-n { background: #d4af37; }
-#hp-gauge-fill-e { background: #e06b6b; }
+/* ── Sudden death state ──────────────────────────────── */
+#timer-block.sudden-death {
+  background: linear-gradient(135deg,
+    rgba(255,140,40,0.1) 0%,
+    rgba(8,8,20,0.82) 40%,
+    rgba(8,8,20,0.82) 60%,
+    rgba(255,140,40,0.1) 100%);
+  border-color: rgba(255,140,40,0.4);
+  box-shadow: 0 0 24px rgba(255,120,0,0.2), inset 0 0 24px rgba(255,120,0,0.04);
+}
+#timer-block.sudden-death::before {
+  background: linear-gradient(to bottom, transparent, #ff8c28, transparent);
+  box-shadow: 0 0 8px #ff8c2899;
+}
+#timer-block.sudden-death::after {
+  background: linear-gradient(to bottom, transparent, #ff8c28, transparent);
+  box-shadow: 0 0 8px #ff8c2899;
+}
+#timer-block.sudden-death .tb-wave-pip {
+  background: #ff8c28;
+  box-shadow: 0 0 6px #ff8c28;
+}
+#timer-block.sudden-death #wave-label  { color: rgba(255,200,100,0.7); }
+#timer-block.sudden-death #timer-label { color: rgba(255,200,100,0.45); letter-spacing: 1px; }
+#timer-block.sudden-death #timer {
+  color: #ffb347;
+  text-shadow: 0 0 28px rgba(255,179,71,0.45);
+  animation: timerPulse 0.6s ease-in-out infinite alternate;
+}
 
 @keyframes timerPulse {
   from { opacity: 1;   transform: scale(1); }
@@ -966,4 +1054,83 @@ html, body {
   height: 100%;
   border-radius: 2px;
   transition: width 0.12s ease;
+}
+
+/* ── Responsive: compact HUD for landscape phones (Nothing Phone 3a Lite etc.) ── */
+/* Target: landscape viewport height ≤ 480px (CSS px, ~1080px physical at 2.5× DPR) */
+@media (max-height: 480px) and (orientation: landscape) {
+
+  #hud {
+    padding: 5px 10px;
+    padding-bottom: calc(5px + env(safe-area-inset-bottom, 0px));
+    padding-left:  calc(10px + env(safe-area-inset-left, 0px));
+    padding-right: calc(10px + env(safe-area-inset-right, 0px));
+    gap: 8px;
+  }
+
+  /* Cost */
+  .cost-coin   { width: 17px; height: 17px; }
+  #cost-value  { font-size: 16px; }
+  #cost-income { font-size: 8px; }
+
+  /* Unit count */
+  #unit-val      { font-size: 13px; }
+  .hud-sublabel  { font-size: 7px; }
+
+  /* Group label */
+  .hud-group      { gap: 3px; }
+  .hud-group-label { font-size: 7px; letter-spacing: 1.5px; }
+
+  /* Unit buttons */
+  .unit-btn          { width: 60px; }
+  .unit-btn-portrait { height: 46px; }
+  .unit-btn-name     { font-size: 9px; }
+  .unit-btn-ability  { font-size: 7px; }
+  .unit-btn-cost     { font-size: 10px; }
+
+  /* Cooldown overlay text */
+  .unit-btn-cooldown-text  { font-size: 17px; }
+  .unit-btn-cooldown-label { font-size: 6px; }
+
+  /* Building buttons */
+  .building-btn  { width: 56px; }
+  .bldg-top      { height: 38px; }
+  .bldg-icon svg { width: 20px; height: 20px; }
+  .bldg-name     { font-size: 9px; }
+  .bldg-cost     { font-size: 10px; }
+  .bldg-desc     { font-size: 7px; max-width: 52px; }
+
+  /* Command cards */
+  .cmd-card      { width: 50px; }
+  .cmd-card-top  { height: 34px; }
+  .cmd-card-icon svg { width: 17px; height: 17px; }
+  .cmd-card-label    { font-size: 8px; padding: 3px 2px 5px; }
+
+  /* Rally cancel button */
+  .rally-active-label { font-size: 8px; }
+  .rally-cancel-btn   { width: 14px; height: 14px; font-size: 7px; }
+
+  /* Hide hint text — not critical, frees horizontal space */
+  #hint-text { display: none; }
+
+  /* Timer block — compact in HUD */
+  #timer-block { padding: 5px 12px 6px; min-width: 170px; gap: 3px; }
+  #wave-label  { font-size: 8px; letter-spacing: 2px; }
+  #timer-label { font-size: 7px; }
+  #timer       { font-size: 24px; letter-spacing: 2px; }
+  #hp-gauge    { min-width: 50px; height: 5px; }
+  #hp-gauge-p, #hp-gauge-e { font-size: 10px; }
+  .tb-score-lbl { display: none; }
+  .tb-wave-pip  { width: 4px; height: 4px; }
+
+  /* Unit monitor — tuck closer to edge */
+  #unit-monitor { left: 6px; bottom: 6px; padding: 5px 6px 6px; min-width: 136px; }
+  .um-name      { font-size: 8.5px; }
+  .um-hp-val    { font-size: 8px; }
+
+  /* Game-over text */
+  .go-label  { font-size: 38px; }
+  .go-winner { font-size: 34px; }
+  .go-sub    { font-size: 16px; }
+  .go-gold   { font-size: 18px; padding: 5px 14px; }
 }

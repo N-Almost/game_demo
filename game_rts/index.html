@@ -37,22 +37,33 @@
       <div id="gameover-overlay">
         <div id="gameover-body"></div>
       </div>
+    </div>
+    <div id="hud">
       <div id="timer-block">
-        <span id="wave-label">WAVE 1</span>
-        <span id="timer-label">TIME</span>
+        <div class="tb-header">
+          <div class="tb-wave">
+            <span class="tb-wave-pip"></span>
+            <span id="wave-label">WAVE 1</span>
+          </div>
+          <span id="timer-label">TIME</span>
+        </div>
         <span id="timer">3:00</span>
         <div id="hp-gauge-wrap">
-          <span id="hp-gauge-p">0</span>
+          <div class="tb-score tb-score-p">
+            <span id="hp-gauge-p">0</span>
+            <span class="tb-score-lbl">PLAYER</span>
+          </div>
           <div id="hp-gauge">
             <div id="hp-gauge-fill-p"></div>
             <div id="hp-gauge-fill-n"></div>
             <div id="hp-gauge-fill-e"></div>
           </div>
-          <span id="hp-gauge-e">0</span>
+          <div class="tb-score tb-score-e">
+            <span id="hp-gauge-e">0</span>
+            <span class="tb-score-lbl">ENEMY</span>
+          </div>
         </div>
       </div>
-    </div>
-    <div id="hud">
       <div id="cost-display">
         <svg class="cost-coin" viewBox="0 0 20 20" fill="none">
           <circle cx="10" cy="10" r="8.5" fill="rgba(255,216,107,0.18)" stroke="#ffd86b" stroke-width="1.5"/>
