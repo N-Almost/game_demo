@@ -25,6 +25,8 @@
   </div>
 
   <div id="app">
+
+    <!-- ── Full-screen canvas ───────────────────────── -->
     <div id="canvas-wrapper">
       <canvas id="gameCanvas" width="960" height="640"></canvas>
       <canvas id="threeCanvas" width="960" height="640"></canvas>
@@ -38,7 +40,28 @@
         <div id="gameover-body"></div>
       </div>
     </div>
-    <div id="hud">
+
+    <!-- ── Top-left: cost + unit count ─────────────── -->
+    <div id="hud-tl">
+      <div id="cost-display">
+        <svg class="cost-coin" viewBox="0 0 20 20" fill="none">
+          <circle cx="10" cy="10" r="8.5" fill="rgba(255,216,107,0.18)" stroke="#ffd86b" stroke-width="1.5"/>
+          <circle cx="10" cy="10" r="4.5" fill="rgba(255,216,107,0.35)"/>
+        </svg>
+        <div class="cost-body">
+          <span id="cost-value">10</span>
+          <span id="cost-income">+0/s</span>
+        </div>
+      </div>
+      <div class="hud-tl-sep"></div>
+      <div id="unit-count">
+        <span id="unit-val">0/5</span>
+        <span class="hud-sublabel">UNITS</span>
+      </div>
+    </div>
+
+    <!-- ── Top-center: timer ────────────────────────── -->
+    <div id="hud-tc">
       <div id="timer-block">
         <div class="tb-header">
           <div class="tb-wave">
@@ -64,20 +87,10 @@
           </div>
         </div>
       </div>
-      <div id="cost-display">
-        <svg class="cost-coin" viewBox="0 0 20 20" fill="none">
-          <circle cx="10" cy="10" r="8.5" fill="rgba(255,216,107,0.18)" stroke="#ffd86b" stroke-width="1.5"/>
-          <circle cx="10" cy="10" r="4.5" fill="rgba(255,216,107,0.35)"/>
-        </svg>
-        <div class="cost-body">
-          <span id="cost-value">10</span>
-          <span id="cost-income">+0/s</span>
-        </div>
-      </div>
-      <div id="unit-count">
-        <span id="unit-val">0/5</span>
-        <span class="hud-sublabel">UNITS</span>
-      </div>
+    </div>
+
+    <!-- ── Bottom: action bar ───────────────────────── -->
+    <div id="hud-bottom">
       <div class="hud-group">
         <div class="hud-group-label">UNIT</div>
         <div id="unit-buttons"><!-- populated from units.json --></div>
@@ -99,7 +112,6 @@
             </div>
             <div class="cmd-card-label">DEFEND</div>
           </button>
-
           <div id="rally-card" class="cmd-card rally-card">
             <div class="cmd-card-top">
               <div class="cmd-card-icon">
@@ -112,10 +124,11 @@
               <button id="btn-cancel-rally" class="rally-cancel-btn">✕</button>
             </div>
           </div>
-        </div><!-- /#command-buttons -->
-      </div><!-- /.hud-group COMMAND -->
+        </div>
+      </div>
       <span id="hint-text">เลือกยูนิต/สิ่งปลูกสร้าง · แตะ spawn ศัตรูเพื่อ Rally</span>
     </div>
+
   </div>
 
   <script type="module" src="renderer.js"></script>

@@ -10,6 +10,67 @@ const WALL_H       = 26;
 const ISO_CX = BOUNDARY.x + BOUNDARY.width  / 2;  // 480
 const ISO_CY = BOUNDARY.y + BOUNDARY.height / 2;  // 320
 
+// ── Zoom / pan state ──────────────────────────────────────────────────────────
+let _zoomLevel = 1.0;
+const ZOOM_MIN = 0.35;
+const ZOOM_MAX = 2.5;
+
+const _panOffset    = new THREE.Vector3();
+const _defaultCamPos = new THREE.Vector3();
+
+function _calcDefaultZoom() {
+  // Fit the full 960×640 game world into the viewport by default
+  return Math.max(ZOOM_MIN, Math.min(1.0, Math.min(window.innerWidth / 960, window.innerHeight / 640) * 0.92));
+}
+
+function _resizeRenderer() {
+  if (!threeRenderer || !camera) return;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  threeRenderer.setSize(w, h, false);  // false = don't touch CSS (CSS handles it)
+  camera.left   = -w / 2;
+  camera.right  =  w / 2;
+  camera.top    =  h / 2;
+  camera.bottom = -h / 2;
+  camera.zoom   = _zoomLevel;
+  camera.updateProjectionMatrix();
+}
+
+function setZoom(level) {
+  _zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, level));
+  if (!camera) return;
+  camera.zoom = _zoomLevel;
+  camera.updateProjectionMatrix();
+}
+
+function getZoom() { return _zoomLevel; }
+
+function panBy(screenDx, screenDy) {
+  if (!camera) return;
+  camera.updateMatrixWorld();
+  const m = camera.matrixWorld.elements;
+  const scale = 1 / _zoomLevel;
+  // Project camera right (col 0) and up (col 1) onto the XZ ground plane,
+  // then normalize each so horizontal and vertical drag feel equally fast.
+  const rx = m[0], rz = m[2];
+  const ux = m[4], uz = m[6];
+  const rLen = Math.hypot(rx, rz) || 1;
+  const uLen = Math.hypot(ux, uz) || 1;
+  _panOffset.x += (-screenDx * rx / rLen + screenDy * ux / uLen) * scale;
+  _panOffset.z += (-screenDx * rz / rLen + screenDy * uz / uLen) * scale;
+  _panOffset.y  = 0;
+  const lim = 600;
+  _panOffset.x = Math.max(-lim, Math.min(lim, _panOffset.x));
+  _panOffset.z = Math.max(-lim, Math.min(lim, _panOffset.z));
+  camera.position.copy(_defaultCamPos).add(_panOffset);
+  camera.updateMatrixWorld();
+}
+
+function resetPan() {
+  _panOffset.set(0, 0, 0);
+  if (camera) { camera.position.copy(_defaultCamPos); camera.updateMatrixWorld(); }
+}
+
 // ── Module state ──────────────────────────────────────────────────────────────
 let threeRenderer, scene, camera, hitPlane;
 let   lastTs    = 0;
@@ -55,6 +116,7 @@ function buildCamera() {
     ISO_CY + dist * Math.cos(elev) * Math.cos(azim)
   );
   camera.lookAt(ISO_CX, 0, ISO_CY);
+  _defaultCamPos.copy(camera.position);
 }
 
 // ── Lights ────────────────────────────────────────────────────────────────────
@@ -924,7 +986,6 @@ async function init(_gameCanvas, spawnPoints, unitList = [], walls = [], enemyUn
 
   threeRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  threeRenderer.setSize(960, 640, false);
   threeRenderer.setClearColor(0x0a0a12);
   threeRenderer.shadowMap.enabled    = true;
   threeRenderer.shadowMap.type       = THREE.PCFSoftShadowMap;
@@ -934,6 +995,9 @@ async function init(_gameCanvas, spawnPoints, unitList = [], walls = [], enemyUn
   scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x0a0a12, 0.00018);
   buildCamera();
+  _zoomLevel = _calcDefaultZoom();
+  _resizeRenderer();
+  window.addEventListener('resize', _resizeRenderer);
   buildLights();
   buildGround();
   buildSpawnPoints(spawnPoints);
@@ -964,5 +1028,5 @@ function getGroundIntersect(clientX, clientY) {
   return { x: hits[0].point.x, y: hits[0].point.z };
 }
 
-window.Renderer = { init, render, getGroundIntersect };
+window.Renderer = { init, render, getGroundIntersect, setZoom, getZoom, panBy, resetPan };
 window.dispatchEvent(new CustomEvent('renderer-ready'));

@@ -59,10 +59,84 @@ export function bindBuildingButtons() {
 // ── Canvas input ──────────────────────────────────────────────────────────────
 
 export function setupCanvasInput(canvas) {
-  canvas.addEventListener('click',      e => _handleTap(e.clientX, e.clientY));
-  canvas.addEventListener('touchend',   e => { e.preventDefault(); _handleTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: false });
-  canvas.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
-  canvas.addEventListener('touchmove',  e => e.preventDefault(), { passive: false });
+  // ── Pinch-to-zoom state ─────────────────────────────
+  let _pinchActive    = false;
+  let _pinchStartDist = 0;
+  let _pinchStartZoom = 1;
+
+  // ── Single-finger drag-to-pan state ─────────────────
+  let _dragActive = false;
+  let _dragLastX  = 0;
+  let _dragLastY  = 0;
+  let _dragStartX = 0;
+  let _dragStartY = 0;
+  const DRAG_THRESHOLD = 8;
+
+  function _touchDist(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+
+  // ── Touch events ────────────────────────────────────
+  canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+    if (e.touches.length === 2) {
+      _pinchActive    = true;
+      _pinchStartDist = _touchDist(e.touches);
+      _pinchStartZoom = window.Renderer?.getZoom() ?? 1;
+      _dragActive = false;
+    } else if (e.touches.length === 1) {
+      _pinchActive = false;
+      _dragActive  = false;
+      _dragStartX  = e.touches[0].clientX;
+      _dragStartY  = e.touches[0].clientY;
+      _dragLastX   = _dragStartX;
+      _dragLastY   = _dragStartY;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (e.touches.length === 2 && _pinchActive) {
+      const dist  = _touchDist(e.touches);
+      window.Renderer?.setZoom(_pinchStartZoom * (dist / _pinchStartDist));
+    } else if (e.touches.length === 1 && !_pinchActive) {
+      const tx = e.touches[0].clientX;
+      const ty = e.touches[0].clientY;
+      if (!_dragActive && Math.hypot(tx - _dragStartX, ty - _dragStartY) > DRAG_THRESHOLD) {
+        _dragActive = true;
+      }
+      if (_dragActive) {
+        window.Renderer?.panBy(tx - _dragLastX, ty - _dragLastY);
+        _dragLastX = tx;
+        _dragLastY = ty;
+      }
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    if (_pinchActive) {
+      if (e.touches.length < 2) _pinchActive = false;
+      return;  // don't fire a tap after pinch
+    }
+    const wasDrag = _dragActive;
+    _dragActive = false;
+    if (wasDrag) return;  // don't fire a tap after drag
+    if (e.changedTouches.length > 0) {
+      _handleTap(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    }
+  }, { passive: false });
+
+  // ── Mouse wheel zoom (desktop) ──────────────────────
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1;
+    window.Renderer?.setZoom((window.Renderer.getZoom() ?? 1) * factor);
+  }, { passive: false });
+
+  canvas.addEventListener('click', e => _handleTap(e.clientX, e.clientY));
 
   const overlay = document.getElementById('gameover-overlay');
   if (overlay) {
@@ -93,6 +167,7 @@ export function bindCommandButtons() {
       _setHint(_idleHint());
     });
   }
+
 }
 
 // ── Private ───────────────────────────────────────────────────────────────────
