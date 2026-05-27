@@ -142,7 +142,7 @@ function _tickEffects(dt) {
     });
 
     if (window.Renderer) {
-      await window.Renderer.init(canvas, SPAWN_POINTS, unitList, cfg.walls, enemyUnitList);
+      await window.Renderer.init(canvas, SPAWN_POINTS, unitList, cfg.walls, enemyUnitList, buildingList);
     }
   } catch (err) {
     console.error('[Init] failed:', err);

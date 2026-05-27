@@ -90,8 +90,9 @@ const explosionPool  = [];
 const damagePool     = [];
 
 // Phase 6: GLB model cache
-const modelTemplates = {};
-const animClips      = {};
+const modelTemplates    = {};
+const animClips         = {};
+const buildingTemplates = {};
 
 // Wall GLB cache — keyed by model name (e.g. "wall_stone")
 const wallModels = {};
@@ -611,33 +612,43 @@ function updateHpBar(mesh, hp, maxHp) {
 function makeBuildingMesh(building) {
   if (building.effect === 'turret') return _makeTurretMesh(building);
 
-  const R         = building.radius ?? 12;
-  const H         = R * 2.2;
-  const mainColor = new THREE.Color(building.color ?? '#d4af37');
-  const darkColor = mainColor.clone().multiplyScalar(0.55);
-
+  const R     = building.radius ?? 12;
   const group = new THREE.Group();
+  let   hpBarY;
 
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(R * 1.7, H, R * 1.7),
-    new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.75, metalness: 0.15 })
-  );
-  body.position.y = H / 2;
-  body.castShadow = true;
-  group.add(body);
+  const template = buildingTemplates[building.type];
+  if (template) {
+    const clone = template.clone(true);
+    clone.traverse(n => { if (n.isMesh) n.castShadow = true; });
+    group.add(clone);
+    const box = new THREE.Box3().setFromObject(clone);
+    hpBarY = box.max.y + 7;
+  } else {
+    const H         = R * 2.2;
+    const mainColor = new THREE.Color(building.color ?? '#d4af37');
+    const darkColor = mainColor.clone().multiplyScalar(0.55);
 
-  const roof = new THREE.Mesh(
-    new THREE.ConeGeometry(R * 1.4, H * 0.45, 4),
-    new THREE.MeshStandardMaterial({ color: darkColor, roughness: 0.8, metalness: 0.1 })
-  );
-  roof.rotation.y = Math.PI / 4;
-  roof.position.y = H + H * 0.225;
-  group.add(roof);
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(R * 1.7, H, R * 1.7),
+      new THREE.MeshStandardMaterial({ color: mainColor, roughness: 0.75, metalness: 0.15 })
+    );
+    body.position.y = H / 2;
+    body.castShadow = true;
+    group.add(body);
 
-  const hpY = H + H * 0.45 + 7;
+    const roof = new THREE.Mesh(
+      new THREE.ConeGeometry(R * 1.4, H * 0.45, 4),
+      new THREE.MeshStandardMaterial({ color: darkColor, roughness: 0.8, metalness: 0.1 })
+    );
+    roof.rotation.y = Math.PI / 4;
+    roof.position.y = H + H * 0.225;
+    group.add(roof);
+    hpBarY = H + H * 0.45 + 7;
+  }
+
   const { bgBar, fgBar, fgCtx, fgTex } = makeHpBarSprites(R, false);
-  bgBar.position.y = hpY;
-  fgBar.position.y = hpY;
+  bgBar.position.y = hpBarY;
+  fgBar.position.y = hpBarY;
   group.add(bgBar, fgBar);
 
   group.userData = { fgBar, fgCtx, fgTex, isEnemy: false };
@@ -974,8 +985,31 @@ async function loadModels() {
   );
 }
 
+async function loadBuildingModels(buildingList) {
+  await Promise.allSettled(
+    buildingList.map(b =>
+      loader.loadAsync(`models/${b.id}.glb`)
+        .then(gltf => {
+          const root = gltf.scene;
+          const R    = b.radius ?? 12;
+          const box  = new THREE.Box3().setFromObject(root);
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          if (size.y > 0) {
+            root.scale.setScalar((R * 3.5) / size.y);
+            const box2 = new THREE.Box3().setFromObject(root);
+            root.position.y = -box2.min.y; // base at y=0
+          }
+          buildingTemplates[b.id] = root;
+          console.log(`[Renderer] Loaded ${b.id}.glb (building)`);
+        })
+        .catch(() => {}) // silently fall back to procedural mesh
+    )
+  );
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
-async function init(_gameCanvas, spawnPoints, unitList = [], walls = [], enemyUnitList = []) {
+async function init(_gameCanvas, spawnPoints, unitList = [], walls = [], enemyUnitList = [], buildingList = []) {
   // Player entries take precedence; enemy-only types are added without overwriting
   unitCfgMap = Object.fromEntries(unitList.map(u => [u.id, u]));
   for (const u of enemyUnitList) {
@@ -1002,7 +1036,7 @@ async function init(_gameCanvas, spawnPoints, unitList = [], walls = [], enemyUn
   buildGround();
   buildSpawnPoints(spawnPoints);
   buildPools();
-  await Promise.all([loadModels(), loadWallModels(walls)]);
+  await Promise.all([loadModels(), loadWallModels(walls), loadBuildingModels(buildingList)]);
   buildWalls(walls);
 }
 
