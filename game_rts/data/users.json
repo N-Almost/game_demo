@@ -46,5 +46,31 @@
       "gold": 15
     },
     "upgrades": {}
+  },
+  {
+    "id": "9bb3b00cc577809702d0ddf4a690ed3a",
+    "username": "Almost",
+    "email": "",
+    "passwordHash": "f305dd0bb05fa906b3131df9063a8ea81ce64f114594fc6d3789978befd054cb",
+    "salt": "b80eeccc711e3e3ce5f5b5bcd93aba8b",
+    "createdAt": "2026-05-27T18:14:56.436Z",
+    "profile": {
+      "name": "ALMOST",
+      "bestWave": 3,
+      "gamesPlayed": 1,
+      "wins": 0,
+      "losses": 1,
+      "totalKills": 2,
+      "totalUnitsDeployed": 4,
+      "totalSpawnsCaptured": 9,
+      "playTimeSec": 64,
+      "unitUsage": {
+        "fast": 2,
+        "heavy": 1,
+        "soldier": 1
+      },
+      "gold": 0
+    },
+    "upgrades": {}
   }
 ]

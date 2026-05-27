@@ -1182,8 +1182,8 @@ html, body {
 #unit-monitor {
   position: absolute;
   left: 10px;
-  bottom: 130px;   /* clear the action bar (~112px) + gap */
-  z-index: 5;
+  bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+  z-index: 15;  /* above hud-bottom (z-index:10) */
   background: rgba(6, 6, 16, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 10px;
@@ -1371,7 +1371,7 @@ html, body {
   .tb-wave-pip  { width: 4px; height: 4px; }
 
   /* Unit monitor — tuck closer to edge */
-  #unit-monitor { left: 6px; bottom: 6px; padding: 5px 6px 6px; min-width: 136px; }
+  #unit-monitor { left: 6px; padding: 5px 6px 6px; min-width: 136px; }
   .um-name      { font-size: 8.5px; }
   .um-hp-val    { font-size: 8px; }
 
