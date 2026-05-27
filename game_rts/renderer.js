@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader }  from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 let _SkeletonUtils = null;
 
@@ -81,6 +82,18 @@ const pointer   = new THREE.Vector2();
 const unitMeshMap     = new Map();
 const buildingMeshMap = new Map();
 
+// Fallback InstancedMesh state
+const _fbInst = {};          // key `type:p|e` → instancer { parts, H, R, slots }
+const _MAX_FB = 32;          // max instances per (type, side) combination
+const _hideM4 = new THREE.Matrix4().makeScale(0, 0, 0);
+const _h1 = new THREE.Object3D();  // reusable matrix-composition helpers
+const _h2 = new THREE.Object3D();
+const _h3 = new THREE.Object3D();
+const _m4t = new THREE.Matrix4();
+
+// Shared enemy materials — created once per type, reused across all enemy GLB instances
+const _enemyMatCache = {}; // type → Map<geometryUUID, Material>
+
 // Spawn point mesh tracking
 let spawnMeshes = [];
 
@@ -99,6 +112,9 @@ const wallModels = {};
 
 // Shared GLTFLoader instance (declared here so loadWallModels can use it)
 const loader = new GLTFLoader();
+const _draco = new DRACOLoader();
+_draco.setDecoderPath('/models/draco/');
+loader.setDRACOLoader(_draco);
 
 // Unit config map — populated from units.json via init()
 let unitCfgMap = {};
@@ -429,6 +445,144 @@ function _cloneModel(template) {
   return clone;
 }
 
+// ── Fallback InstancedMesh helpers ────────────────────────────────────────────
+
+function _makeIM(geo, color, max) {
+  const im = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial({ color }), max);
+  im.frustumCulled = false;
+  im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  im.count = 0;
+  return im;
+}
+
+function _ensureFbInstr(type, isEnemy) {
+  const key = `${type}:${isEnemy ? 'e' : 'p'}`;
+  if (_fbInst[key]) return _fbInst[key];
+
+  const cfg = unitCfgMap[type] ?? { radius: 10, color: '#6be07a', enemyColor: '#c44040' };
+  const sc  = cfg.radius / 10;
+  const H   = 28 * sc, R = 8 * sc;
+
+  const bC = new THREE.Color(isEnemy ? (cfg.enemyColor ?? cfg.color) : cfg.color);
+  const sC = new THREE.Color(isEnemy ? 0xc47a6a : 0xf5c8a0);
+  const lC = new THREE.Color(isEnemy ? 0x6b2a2a : 0x2a2a5a);
+
+  const parts = {
+    body: _makeIM(new THREE.CylinderGeometry(R * 0.54, R * 0.34, H * 0.44, 8), bC, _MAX_FB),
+    head: _makeIM(new THREE.SphereGeometry(R * 0.44, 8, 8),                     sC, _MAX_FB),
+    lLeg: _makeIM(new THREE.CylinderGeometry(R * 0.20, R * 0.22, H * 0.36, 6), lC, _MAX_FB),
+    rLeg: _makeIM(new THREE.CylinderGeometry(R * 0.20, R * 0.22, H * 0.36, 6), lC, _MAX_FB),
+    lArm: _makeIM(new THREE.CylinderGeometry(R * 0.17, R * 0.17, H * 0.30, 6), bC, _MAX_FB),
+    rArm: _makeIM(new THREE.CylinderGeometry(R * 0.17, R * 0.17, H * 0.30, 6), bC, _MAX_FB),
+  };
+  for (const im of Object.values(parts)) scene.add(im);
+
+  const instr = { parts, H, R, slots: new Array(_MAX_FB).fill(null) };
+  _fbInst[key] = instr;
+  return instr;
+}
+
+function _allocFbProxy(type, isEnemy) {
+  const key   = `${type}:${isEnemy ? 'e' : 'p'}`;
+  const instr = _ensureFbInstr(type, isEnemy);
+  const slot  = instr.slots.indexOf(null);
+  if (slot === -1) return null;
+  instr.slots[slot] = true;
+  for (const im of Object.values(instr.parts))
+    if (slot >= im.count) im.count = slot + 1;
+
+  const cfg = unitCfgMap[type] ?? { radius: 10 };
+  const R   = 0.8 * (cfg.radius ?? 10);
+  const { bgBar, fgBar, fgCtx, fgTex } = makeHpBarSprites(R, isEnemy);
+  scene.add(bgBar); scene.add(fgBar);
+
+  return {
+    _fbProxy: true,
+    instrKey: key, slot,
+    bgSprite: bgBar, fgSprite: fgBar,
+    userData: { fgCtx, fgTex, isEnemy },
+    rotY: 0, animTime: 0,
+  };
+}
+
+function _freeFbProxy(proxy) {
+  const instr = _fbInst[proxy.instrKey];
+  if (instr) {
+    instr.slots[proxy.slot] = null;
+    for (const im of Object.values(instr.parts)) {
+      im.setMatrixAt(proxy.slot, _hideM4);
+      im.instanceMatrix.needsUpdate = true;
+    }
+  }
+  scene.remove(proxy.bgSprite);
+  scene.remove(proxy.fgSprite);
+}
+
+// Set one instance's world matrix from a 3-level hierarchy:
+//   unit (pos=ux,0,uz  rot.y=ry)
+//     pivot (pos=pivX,pivY,pivZ  rot.x=angleX)
+//       mesh  (pos=0,meshY,0  rot.z=meshZ)
+function _setPartMat(im, slot, ux, uz, ry, pivX, pivY, pivZ, angleX, meshY, meshZ = 0) {
+  _h1.position.set(ux, 0, uz);       _h1.rotation.set(0, ry, 0);        _h1.updateMatrix();
+  _h2.position.set(pivX, pivY, pivZ); _h2.rotation.set(angleX, 0, 0);   _h2.updateMatrix();
+  _h3.position.set(0, meshY, 0);      _h3.rotation.set(0, 0, meshZ);    _h3.updateMatrix();
+  _m4t.copy(_h1.matrix).multiply(_h2.matrix).multiply(_h3.matrix);
+  im.setMatrixAt(slot, _m4t);
+  im.instanceMatrix.needsUpdate = true;
+}
+
+function _advanceFbProxy(proxy, unit, delta) {
+  const instr = _fbInst[proxy.instrKey];
+  if (!instr || proxy.slot < 0) return;
+
+  proxy.animTime += delta;
+  const t = proxy.animTime;
+  const { H, R, parts } = instr;
+  const spd = Math.hypot(unit.vx || 0, unit.vy || 0);
+  const attacking = unit.attackTimer > 0 && unit.attackTimer < 0.45;
+
+  let lLegX = 0, rLegX = 0, armX = 0, bodyDy = 0, headDy = 0;
+  if (attacking) {
+    const thr = Math.sin(t * 18) * 0.55;
+    armX = -0.4 + thr; bodyDy = Math.sin(t * 18) * 0.8;
+  } else if (spd > 8) {
+    const s = Math.sin(t * 7);
+    lLegX = s * 0.55; rLegX = -s * 0.55; armX = -s * 0.4;
+    bodyDy = Math.abs(s) * 1.2; headDy = Math.abs(s) * 0.5;
+  } else {
+    const b = Math.sin(t * 1.8);
+    armX = b * 0.06; bodyDy = b * 0.6; headDy = b * 0.4;
+  }
+
+  const ux = unit.x, uz = unit.y, ry = proxy.rotY, sl = proxy.slot;
+  const baseHeadY = H * 0.76 + R * 0.44;
+
+  _setPartMat(parts.body, sl, ux, uz, ry,  0,         0,         0, 0,      H * 0.54 + bodyDy);
+  _setPartMat(parts.head, sl, ux, uz, ry,  0,         0,         0, 0,      baseHeadY + headDy);
+  _setPartMat(parts.lLeg, sl, ux, uz, ry, -R * 0.28, H * 0.36,  0, lLegX, -H * 0.18);
+  _setPartMat(parts.rLeg, sl, ux, uz, ry,  R * 0.28, H * 0.36,  0, rLegX, -H * 0.18);
+  _setPartMat(parts.lArm, sl, ux, uz, ry, -R * 0.76, H * 0.76,  0, armX,  -H * 0.15,  0.18);
+  _setPartMat(parts.rArm, sl, ux, uz, ry,  R * 0.76, H * 0.76,  0, armX,  -H * 0.15, -0.18);
+
+  const hpY = baseHeadY + R * 0.44 + headDy + 5;
+  proxy.bgSprite.position.set(ux, hpY, uz);
+  proxy.fgSprite.position.set(ux, hpY, uz);
+}
+
+// ── Shared GLB enemy material cache ──────────────────────────────────────────
+
+function _sharedEnemyMat(type, geoUUID, srcMat) {
+  if (!_enemyMatCache[type]) _enemyMatCache[type] = new Map();
+  const cache = _enemyMatCache[type];
+  if (!cache.has(geoUUID)) {
+    const m = srcMat.clone();
+    m.color.multiplyScalar(0.6);
+    m.color.r = Math.min(1, m.color.r + 0.35);
+    cache.set(geoUUID, m);
+  }
+  return cache.get(geoUUID);
+}
+
 // ── Unit mesh factory ─────────────────────────────────────────────────────────
 function makeUnitMesh(type, isEnemy) {
   if (modelTemplates[type]) {
@@ -447,20 +601,15 @@ function makeUnitMesh(type, isEnemy) {
     const initialClip = clips.idle ? 'idle' : clips.walk ? 'walk' : (Object.keys(clips)[0] ?? null);
     if (initialClip) mixer.clipAction(clips[initialClip]).play();
 
-    // Apply enemy tint
+    // Enemy tint: share one material per (type, geometry) instead of cloning per unit
     if (isEnemy) {
       modelClone.traverse(node => {
-        if (node.isMesh && node.material) {
-          node.material = node.material.clone();
-          node.material.color.multiplyScalar(0.6);
-          node.material.color.r = Math.min(1, node.material.color.r + 0.35);
-        }
+        if (node.isMesh && node.material)
+          node.material = _sharedEnemyMat(type, node.geometry.uuid, node.material);
       });
     }
 
     // Wrap in an unscaled Group so HP bar sprites sit at correct world-space height.
-    // (modelClone already has scale baked in from loadModels; adding sprites directly
-    //  to it would multiply their positions by that scale and push them off-screen.)
     const wrapper = new THREE.Group();
     wrapper.add(modelClone);
 
@@ -474,7 +623,9 @@ function makeUnitMesh(type, isEnemy) {
     wrapper.userData = { mixer, clips, currentClip: initialClip, isEnemy, fgBar, fgCvs, fgCtx, fgTex };
     return wrapper;
   }
-  return makeFallbackMesh(type, isEnemy);
+
+  // Fallback: instanced procedural mesh (6 InstancedMesh parts, shared per type+side)
+  return _allocFbProxy(type, isEnemy) ?? makeFallbackMesh(type, isEnemy);
 }
 
 function makeFallbackMesh(type, isEnemy) {
@@ -718,7 +869,8 @@ function syncUnits(units, enemies, delta) {
   // Remove meshes for dead units
   for (const [ref, mesh] of unitMeshMap) {
     if (!liveSet.has(ref)) {
-      scene.remove(mesh);
+      if (mesh._fbProxy) _freeFbProxy(mesh);
+      else scene.remove(mesh);
       unitMeshMap.delete(ref);
     }
   }
@@ -727,26 +879,40 @@ function syncUnits(units, enemies, delta) {
     for (const u of list) {
       if (!unitMeshMap.has(u)) {
         const mesh = makeUnitMesh(u.type, isEnemy);
-        scene.add(mesh);
+        if (mesh && !mesh._fbProxy) scene.add(mesh);
         unitMeshMap.set(u, mesh);
       }
       const mesh = unitMeshMap.get(u);
-      mesh.position.set(u.x, 0, u.y);
+      if (!mesh) continue;
 
       const spd = Math.hypot(u.vx || 0, u.vy || 0);
       const fx  = spd > 1 ? u.vx : (u.facingDx || 0);
       const fy  = spd > 1 ? u.vy : (u.facingDy || 0);
-      if (Math.hypot(fx, fy) > 0.5) {
-        const target = Math.atan2(fx, fy);
-        let diff = target - mesh.rotation.y;
-        // Wrap diff to [-π, π] so we always rotate the short way round
-        while (diff >  Math.PI) diff -= Math.PI * 2;
-        while (diff < -Math.PI) diff += Math.PI * 2;
-        mesh.rotation.y += diff * Math.min(1, delta * 14);
-      }
 
-      updateHpBar(mesh, u.hp, u.maxHp);
-      advanceAnimation(mesh, u, delta);
+      if (mesh._fbProxy) {
+        // Instanced fallback path — rotation tracked on proxy, matrices set per-frame
+        if (Math.hypot(fx, fy) > 0.5) {
+          const target = Math.atan2(fx, fy);
+          let diff = target - mesh.rotY;
+          while (diff >  Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          mesh.rotY += diff * Math.min(1, delta * 14);
+        }
+        updateHpBar(mesh, u.hp, u.maxHp);
+        _advanceFbProxy(mesh, u, delta);
+      } else {
+        // GLB (or non-instanced fallback) path
+        mesh.position.set(u.x, 0, u.y);
+        if (Math.hypot(fx, fy) > 0.5) {
+          const target = Math.atan2(fx, fy);
+          let diff = target - mesh.rotation.y;
+          while (diff >  Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          mesh.rotation.y += diff * Math.min(1, delta * 14);
+        }
+        updateHpBar(mesh, u.hp, u.maxHp);
+        advanceAnimation(mesh, u, delta);
+      }
     }
   }
 }
@@ -976,6 +1142,30 @@ async function loadModels() {
   );
 }
 
+function _warmupRenderer() {
+  const tmp = [];
+
+  // Add one clone of every loaded GLB template far off-screen
+  for (const tmpl of Object.values(modelTemplates)) {
+    const m = tmpl.clone(true);
+    m.position.set(-99999, 0, -99999);
+    scene.add(m);
+    tmp.push(m);
+  }
+  for (const tmpl of Object.values(buildingTemplates)) {
+    const m = tmpl.clone(true);
+    m.position.set(-99999, 0, -99999);
+    scene.add(m);
+    tmp.push(m);
+  }
+
+  // Force shader compilation for all materials now in scene
+  threeRenderer.compile(scene, camera);
+
+  // Clean up warmup meshes
+  for (const m of tmp) scene.remove(m);
+}
+
 async function loadBuildingModels(buildingList) {
   await Promise.allSettled(
     buildingList.map(b =>
@@ -1028,6 +1218,7 @@ async function init(_gameCanvas, spawnPoints, unitList = [], walls = [], enemyUn
   buildSpawnPoints(spawnPoints);
   buildPools();
   await Promise.all([loadModels(), loadWallModels(walls), loadBuildingModels(buildingList)]);
+  _warmupRenderer();
   buildWalls(walls);
 }
 

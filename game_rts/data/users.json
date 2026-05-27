@@ -30,16 +30,20 @@
     "createdAt": "2026-05-27T16:39:12.460Z",
     "profile": {
       "name": "JSON",
-      "bestWave": 1,
-      "gamesPlayed": 0,
-      "wins": 0,
-      "losses": 0,
-      "totalKills": 0,
-      "totalUnitsDeployed": 0,
-      "totalSpawnsCaptured": 0,
-      "playTimeSec": 0,
-      "unitUsage": {},
-      "gold": 0
+      "bestWave": 2,
+      "gamesPlayed": 4,
+      "wins": 1,
+      "losses": 3,
+      "totalKills": 50,
+      "totalUnitsDeployed": 83,
+      "totalSpawnsCaptured": 62,
+      "playTimeSec": 473,
+      "unitUsage": {
+        "fast": 43,
+        "heavy": 24,
+        "soldier": 16
+      },
+      "gold": 15
     },
     "upgrades": {}
   }
