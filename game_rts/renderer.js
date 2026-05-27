@@ -652,6 +652,7 @@ function makeBuildingMesh(building) {
   group.add(bgBar, fgBar);
 
   group.userData = { fgBar, fgCtx, fgTex, isEnemy: false };
+  group.scale.set(0.5, 0.5, 0.5);
   return group;
 }
 
@@ -694,6 +695,7 @@ function _makeTurretMesh(building) {
   group.add(bgBar, fgBar);
 
   group.userData = { fgBar, fgCtx, fgTex, isEnemy: false };
+  group.scale.set(0.5, 0.5, 0.5);
   return group;
 }
 
