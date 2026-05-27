@@ -139,42 +139,15 @@ function buildLights() {
 }
 
 // ── Ground ────────────────────────────────────────────────────────────────────
-function _makeGroundTexture() {
-  const size = 1024;
-  const cvs  = document.createElement('canvas');
-  cvs.width = cvs.height = size;
-  const ctx  = cvs.getContext('2d');
-
-  // Dark base matching UI (#0a0a12)
-  ctx.fillStyle = '#0d0d18';
-  ctx.fillRect(0, 0, size, size);
-
-  // Fine grid — dim blue-white lines
-  const fine = size / 20;
-  ctx.strokeStyle = 'rgba(100,130,220,0.12)';
-  ctx.lineWidth   = 0.7;
-  for (let i = 0; i <= 20; i++) {
-    ctx.beginPath(); ctx.moveTo(i * fine, 0);  ctx.lineTo(i * fine, size); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i * fine);  ctx.lineTo(size, i * fine); ctx.stroke();
-  }
-
-  // Major grid — slightly brighter
-  const major = size / 4;
-  ctx.strokeStyle = 'rgba(120,160,255,0.22)';
-  ctx.lineWidth   = 1.2;
-  for (let i = 0; i <= 4; i++) {
-    ctx.beginPath(); ctx.moveTo(i * major, 0); ctx.lineTo(i * major, size); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0, i * major); ctx.lineTo(size, i * major); ctx.stroke();
-  }
-
-  return new THREE.CanvasTexture(cvs);
-}
 
 function buildGround() {
   // Main ground
+  const floorTex = new THREE.TextureLoader().load('floor.png');
+  floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
+  floorTex.repeat.set(6, 5);
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(BOUNDARY.width, BOUNDARY.height),
-    new THREE.MeshStandardMaterial({ map: _makeGroundTexture(), roughness: 1.0, metalness: 0, color: 0x0d0d18 })
+    new THREE.MeshStandardMaterial({ map: floorTex, roughness: 1.0, metalness: 0, color: 0xaaaaaa })
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.set(ISO_CX, 0, ISO_CY);
@@ -657,38 +630,47 @@ function makeBuildingMesh(building) {
 }
 
 function _makeTurretMesh(building) {
-  const R         = building.radius ?? 10;
-  const accentColor = new THREE.Color(building.color ?? '#e05555');
-  const group     = new THREE.Group();
+  const R     = building.radius ?? 10;
+  const group = new THREE.Group();
+  let   hpY;
 
-  // Base platform
-  const base = new THREE.Mesh(
-    new THREE.CylinderGeometry(R * 1.1, R * 1.3, R * 0.7, 8),
-    new THREE.MeshStandardMaterial({ color: 0x3c4060, roughness: 0.78, metalness: 0.35 })
-  );
-  base.position.y = R * 0.35;
-  base.castShadow = true;
-  group.add(base);
+  const template = buildingTemplates[building.type];
+  if (template) {
+    const clone = template.clone(true);
+    clone.traverse(n => { if (n.isMesh) n.castShadow = true; });
+    group.add(clone);
+    const box = new THREE.Box3().setFromObject(clone);
+    hpY = box.max.y + 7;
+  } else {
+    const accentColor = new THREE.Color(building.color ?? '#e05555');
 
-  // Turret head
-  const head = new THREE.Mesh(
-    new THREE.BoxGeometry(R * 1.4, R * 0.9, R * 1.4),
-    new THREE.MeshStandardMaterial({ color: accentColor, roughness: 0.6, metalness: 0.45, emissive: accentColor, emissiveIntensity: 0.12 })
-  );
-  head.position.y = R * 1.15;
-  head.castShadow = true;
-  group.add(head);
+    const base = new THREE.Mesh(
+      new THREE.CylinderGeometry(R * 1.1, R * 1.3, R * 0.7, 8),
+      new THREE.MeshStandardMaterial({ color: 0x3c4060, roughness: 0.78, metalness: 0.35 })
+    );
+    base.position.y = R * 0.35;
+    base.castShadow = true;
+    group.add(base);
 
-  // Gun barrel
-  const barrel = new THREE.Mesh(
-    new THREE.CylinderGeometry(R * 0.15, R * 0.15, R * 1.6, 6),
-    new THREE.MeshStandardMaterial({ color: 0x18182a, roughness: 0.7, metalness: 0.6 })
-  );
-  barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(0, R * 1.15, -R * 1.1);
-  group.add(barrel);
+    const head = new THREE.Mesh(
+      new THREE.BoxGeometry(R * 1.4, R * 0.9, R * 1.4),
+      new THREE.MeshStandardMaterial({ color: accentColor, roughness: 0.6, metalness: 0.45, emissive: accentColor, emissiveIntensity: 0.12 })
+    );
+    head.position.y = R * 1.15;
+    head.castShadow = true;
+    group.add(head);
 
-  const hpY = R * 1.6 + 10;
+    const barrel = new THREE.Mesh(
+      new THREE.CylinderGeometry(R * 0.15, R * 0.15, R * 1.6, 6),
+      new THREE.MeshStandardMaterial({ color: 0x18182a, roughness: 0.7, metalness: 0.6 })
+    );
+    barrel.rotation.x = Math.PI / 2;
+    barrel.position.set(0, R * 1.15, -R * 1.1);
+    group.add(barrel);
+
+    hpY = R * 1.6 + 10;
+  }
+
   const { bgBar, fgBar, fgCtx, fgTex } = makeHpBarSprites(R, false);
   bgBar.position.y = hpY;
   fgBar.position.y = hpY;
@@ -717,7 +699,16 @@ function syncBuildings(buildings) {
       scene.add(mesh);
       buildingMeshMap.set(b, mesh);
     }
-    updateHpBar(buildingMeshMap.get(b), b.hp, b.maxHp);
+    const mesh = buildingMeshMap.get(b);
+    updateHpBar(mesh, b.hp, b.maxHp);
+
+    if (b.effect === 'turret' && b.aimAngle != null) {
+      const targetRot = b.aimAngle + Math.PI / 2;
+      let diff = targetRot - mesh.rotation.y;
+      while (diff >  Math.PI) diff -= 2 * Math.PI;
+      while (diff < -Math.PI) diff += 2 * Math.PI;
+      mesh.rotation.y += diff * 0.15;
+    }
   }
 }
 

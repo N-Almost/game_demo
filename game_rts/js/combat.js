@@ -24,9 +24,9 @@ export function updateTurrets(dt) {
   for (const b of state.buildings) {
     if (b.owner !== 'player' || b.effect !== 'turret') continue;
 
-    if (b.attackTimer > 0) { b.attackTimer -= dt; continue; }
+    b.attackTimer = Math.max(0, b.attackTimer - dt);
 
-    // Find nearest visible enemy in range
+    // Always find nearest visible enemy in range (for aiming even on cooldown)
     let target = null, nearest = Infinity;
     for (const e of state.enemies) {
       const d = Math.hypot(e.x - b.x, e.y - b.y);
@@ -38,6 +38,11 @@ export function updateTurrets(dt) {
 
     const dx = target.x - b.x, dy = target.y - b.y;
     const d  = Math.hypot(dx, dy) || 1;
+
+    b.aimAngle = Math.atan2(dx, dy); // store for renderer rotation
+
+    if (b.attackTimer > 0) continue;
+
     state.projectiles.push({
       x: b.x, y: b.y,
       vx: (dx / d) * b.projectileSpeed,
