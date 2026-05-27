@@ -1,0 +1,46 @@
+[
+  {
+    "id": "daab5123e39124ab594801edbb41eb34",
+    "username": "testuser",
+    "email": "",
+    "passwordHash": "1da8ea5e25930ae4805e5f1c1a96afd6be9541168238a3570192926f26c35511",
+    "salt": "acd7c6758cb9ebb9cebf7b0363d97c3e",
+    "createdAt": "2026-05-27T16:36:28.992Z",
+    "profile": {
+      "name": "TESTUSER",
+      "bestWave": 1,
+      "gamesPlayed": 0,
+      "wins": 0,
+      "losses": 0,
+      "totalKills": 0,
+      "totalUnitsDeployed": 0,
+      "totalSpawnsCaptured": 0,
+      "playTimeSec": 0,
+      "unitUsage": {},
+      "gold": 0
+    },
+    "upgrades": {}
+  },
+  {
+    "id": "6e1bc3566e8ded929481b58f8781b0e6",
+    "username": "Json",
+    "email": "",
+    "passwordHash": "3af059dd3908ddf13ca02a2df2f1e62084cddcdc165892ae4a6ee616834c236f",
+    "salt": "a5712802b74732205c34c824d001f5a4",
+    "createdAt": "2026-05-27T16:39:12.460Z",
+    "profile": {
+      "name": "JSON",
+      "bestWave": 1,
+      "gamesPlayed": 0,
+      "wins": 0,
+      "losses": 0,
+      "totalKills": 0,
+      "totalUnitsDeployed": 0,
+      "totalSpawnsCaptured": 0,
+      "playTimeSec": 0,
+      "unitUsage": {},
+      "gold": 0
+    },
+    "upgrades": {}
+  }
+]

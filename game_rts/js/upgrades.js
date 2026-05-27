@@ -1,3 +1,5 @@
+import { syncUpgrades } from './auth.js';
+
 const KEY = 'rts_upgrades';
 
 export const UPGRADE_DEFS = {
@@ -16,6 +18,7 @@ export function loadUpgrades() {
 
 export function saveUpgrades(u) {
   localStorage.setItem(KEY, JSON.stringify(u));
+  syncUpgrades(u);
 }
 
 export function getUnitUpgrades(type) {

@@ -1,3 +1,5 @@
+import { syncProfile } from './auth.js';
+
 const KEY = 'rts_profile';
 
 const _defaults = () => ({
@@ -24,6 +26,7 @@ export function loadProfile() {
 
 export function saveProfile(p) {
   localStorage.setItem(KEY, JSON.stringify(p));
+  syncProfile(p);
 }
 
 export function setProfileName(raw) {

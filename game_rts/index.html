@@ -375,6 +375,89 @@
     }
     .btn-manage:hover .bm-arrow { transform: translateX(2px); color: rgba(255,216,107,0.6); }
 
+    /* ══════════════════════════════════════════════════
+       AUTH OVERLAY
+    ══════════════════════════════════════════════════ */
+    #auth-overlay {
+      position: fixed; inset: 0; z-index: 90;
+      background: rgba(5,5,14,0.94);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.35s ease;
+    }
+    #auth-overlay.hidden { opacity: 0; pointer-events: none; }
+
+    .auth-card {
+      width: 320px; max-width: 92vw;
+      background: rgba(10,10,24,0.98);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 22px;
+      padding: 30px 26px 26px;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+      animation: cardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
+      display: flex; flex-direction: column; gap: 20px;
+    }
+    .auth-logo {
+      font-size: 30px; font-weight: 900; letter-spacing: -1px;
+      color: #fff; text-align: center; line-height: 1;
+    }
+    .auth-logo span { color: #6be07a; }
+    .auth-tagline {
+      font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+      color: rgba(255,255,255,0.25); text-align: center; margin-top: -12px;
+      text-transform: uppercase;
+    }
+
+    .auth-tabs {
+      display: flex;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 11px; padding: 3px; gap: 3px;
+    }
+    .auth-tab {
+      flex: 1; padding: 8px 0;
+      background: none; border: none; border-radius: 8px;
+      font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+      color: rgba(255,255,255,0.35); cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+      touch-action: manipulation;
+    }
+    .auth-tab.active { background: #6be07a; color: #0a1a0d; }
+
+    .auth-panel { display: none; flex-direction: column; gap: 10px; }
+    .auth-panel.active { display: flex; }
+
+    .auth-input {
+      width: 100%; padding: 11px 13px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: #fff; font-family: inherit; font-size: 13px; font-weight: 500;
+      outline: none; transition: border-color 0.15s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .auth-input:focus { border-color: #6be07a; background: rgba(107,224,122,0.04); }
+    .auth-input::placeholder { color: rgba(255,255,255,0.2); }
+
+    .auth-submit {
+      width: 100%; padding: 12px;
+      background: #6be07a; color: #0a1a0d;
+      font-family: inherit; font-size: 14px; font-weight: 800; letter-spacing: 0.5px;
+      border: none; border-radius: 10px; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(107,224,122,0.35);
+      transition: background 0.15s, opacity 0.15s, transform 0.1s;
+      touch-action: manipulation; margin-top: 2px;
+    }
+    .auth-submit:hover   { background: #7ef08b; }
+    .auth-submit:active  { transform: scale(0.97); }
+    .auth-submit:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    .auth-err {
+      min-height: 15px; font-size: 10px; font-weight: 600;
+      color: #ff6b6b; text-align: center; letter-spacing: 0.2px;
+    }
+
     /* ── Transition ─────────────────────────────────── */
     #transition-out {
       position:fixed; inset:0; background:#0a0a12; opacity:0;
@@ -427,6 +510,37 @@
   </style>
 </head>
 <body>
+  <!-- Auth overlay (shown when not logged in) -->
+  <div id="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-logo">SIMPLE <span>RTS</span></div>
+      <p class="auth-tagline">Sign in to play</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="auth-tab-in">เข้าสู่ระบบ</button>
+        <button class="auth-tab"        id="auth-tab-up">สมัครสมาชิก</button>
+      </div>
+
+      <!-- Login panel -->
+      <div class="auth-panel active" id="auth-panel-in">
+        <input class="auth-input" id="in-user" type="text"     placeholder="ชื่อผู้ใช้"  autocomplete="username" />
+        <input class="auth-input" id="in-pass" type="password" placeholder="รหัสผ่าน"   autocomplete="current-password" />
+        <button class="auth-submit" id="auth-btn-in">เข้าสู่ระบบ</button>
+        <p class="auth-err" id="in-err"></p>
+      </div>
+
+      <!-- Signup panel -->
+      <div class="auth-panel" id="auth-panel-up">
+        <input class="auth-input" id="up-user"  type="text"     placeholder="ชื่อผู้ใช้ (3–16 ตัว)"  autocomplete="username" />
+        <input class="auth-input" id="up-email" type="email"    placeholder="อีเมล (ไม่บังคับ)"       autocomplete="email" />
+        <input class="auth-input" id="up-pass"  type="password" placeholder="รหัสผ่าน (≥ 6 ตัว)"    autocomplete="new-password" />
+        <input class="auth-input" id="up-pass2" type="password" placeholder="ยืนยันรหัสผ่าน"         autocomplete="new-password" />
+        <button class="auth-submit" id="auth-btn-up">สมัครสมาชิก</button>
+        <p class="auth-err" id="up-err"></p>
+      </div>
+    </div>
+  </div>
+
   <video id="bg-video" src="menu.mp4" autoplay loop muted playsinline></video>
   <div id="bg-overlay"></div>
   <div id="transition-out"></div>
@@ -495,6 +609,7 @@
           </div>
           <div class="pw-divider"></div>
           <button class="pw-edit-btn" id="pw-edit-btn">✎ EDIT NAME</button>
+          <button class="pw-edit-btn" id="pw-logout-btn" style="color:rgba(255,100,100,0.5)">⏻ SIGN OUT</button>
         </div>
       </div>
     </div>
@@ -569,8 +684,10 @@
   </div>
 
   <script type="module">
-    import { loadProfile, setProfileName } from './js/profile.js';
+    import { loadProfile, saveProfile, setProfileName } from './js/profile.js';
+    import { getMe, login, signup, logout } from './js/auth.js';
 
+    // ── Helpers ──────────────────────────────────────
     function _formatTime(sec) {
       if (sec < 60)   return `${sec}s`;
       if (sec < 3600) return `${Math.floor(sec / 60)}m`;
@@ -581,7 +698,6 @@
     function renderProfile() {
       const p  = loadProfile();
       const wr = p.gamesPlayed > 0 ? Math.round(p.wins / p.gamesPlayed * 100) : 0;
-
       document.getElementById('pw-avatar').textContent  = p.name.charAt(0);
       document.getElementById('pw-name').textContent    = p.name;
       document.getElementById('pw-gold').textContent    = (p.gold ?? 0).toLocaleString();
@@ -594,9 +710,94 @@
       document.getElementById('pw-time').textContent    = _formatTime(p.playTimeSec);
     }
 
-    const wave = parseInt(localStorage.getItem('rts_wave') || '1', 10);
-    document.getElementById('wave-badge-text').textContent  = `WAVE ${wave}`;
-    renderProfile();
+    // ── Auth overlay ─────────────────────────────────
+    const authOverlay = document.getElementById('auth-overlay');
+
+    function showAuthOverlay() { authOverlay.classList.remove('hidden'); }
+    function hideAuthOverlay() {
+      authOverlay.classList.add('hidden');
+      const wave = parseInt(localStorage.getItem('rts_wave') || '1', 10);
+      document.getElementById('wave-badge-text').textContent = `WAVE ${wave}`;
+      renderProfile();
+    }
+
+    function applyServerUser(user) {
+      // Write server profile + upgrades into localStorage
+      if (user.profile)  localStorage.setItem('rts_profile',  JSON.stringify(user.profile));
+      if (user.upgrades) localStorage.setItem('rts_upgrades', JSON.stringify(user.upgrades));
+    }
+
+    // Check auth on load
+    (async () => {
+      const user = await getMe();
+      if (user) {
+        applyServerUser(user);
+        hideAuthOverlay();
+      } else {
+        showAuthOverlay();
+      }
+    })();
+
+    // ── Tab switching ────────────────────────────────
+    document.getElementById('auth-tab-in').addEventListener('click', () => {
+      document.getElementById('auth-tab-in').classList.add('active');
+      document.getElementById('auth-tab-up').classList.remove('active');
+      document.getElementById('auth-panel-in').classList.add('active');
+      document.getElementById('auth-panel-up').classList.remove('active');
+      document.getElementById('in-err').textContent = '';
+    });
+    document.getElementById('auth-tab-up').addEventListener('click', () => {
+      document.getElementById('auth-tab-up').classList.add('active');
+      document.getElementById('auth-tab-in').classList.remove('active');
+      document.getElementById('auth-panel-up').classList.add('active');
+      document.getElementById('auth-panel-in').classList.remove('active');
+      document.getElementById('up-err').textContent = '';
+    });
+
+    // ── Login form ───────────────────────────────────
+    async function doLogin() {
+      const username = document.getElementById('in-user').value.trim();
+      const password = document.getElementById('in-pass').value;
+      const errEl    = document.getElementById('in-err');
+      const btn      = document.getElementById('auth-btn-in');
+      if (!username || !password) { errEl.textContent = 'กรุณากรอกข้อมูลให้ครบ'; return; }
+      btn.disabled = true; errEl.textContent = '';
+      try {
+        const { user } = await login(username, password);
+        applyServerUser(user);
+        hideAuthOverlay();
+      } catch (e) {
+        errEl.textContent = e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    document.getElementById('auth-btn-in').addEventListener('click', doLogin);
+    document.getElementById('in-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+    // ── Signup form ──────────────────────────────────
+    async function doSignup() {
+      const username = document.getElementById('up-user').value.trim();
+      const email    = document.getElementById('up-email').value.trim();
+      const password = document.getElementById('up-pass').value;
+      const pass2    = document.getElementById('up-pass2').value;
+      const errEl    = document.getElementById('up-err');
+      const btn      = document.getElementById('auth-btn-up');
+      if (!username || !password) { errEl.textContent = 'กรุณากรอกข้อมูลให้ครบ'; return; }
+      if (password !== pass2)     { errEl.textContent = 'รหัสผ่านไม่ตรงกัน'; return; }
+      btn.disabled = true; errEl.textContent = '';
+      try {
+        const { user } = await signup(username, email, password);
+        applyServerUser(user);
+        hideAuthOverlay();
+      } catch (e) {
+        errEl.textContent = e.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    document.getElementById('auth-btn-up').addEventListener('click', doSignup);
+    document.getElementById('up-pass2').addEventListener('keydown', e => { if (e.key === 'Enter') doSignup(); });
 
     // ── Profile widget toggle ────────────────────────
     const widget   = document.getElementById('profile-widget');
@@ -641,6 +842,13 @@
       e.stopPropagation();
       localStorage.removeItem('rts_wave');
       document.getElementById('wave-badge-text').textContent = 'WAVE 1';
+    });
+
+    // ── Logout ───────────────────────────────────────
+    document.getElementById('pw-logout-btn').addEventListener('click', async () => {
+      widget.classList.remove('open');
+      await logout();
+      showAuthOverlay();
     });
 
     // ── Name modal ───────────────────────────────────
