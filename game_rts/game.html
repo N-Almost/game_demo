@@ -98,6 +98,34 @@
       </div>
     </div>
 
+    <!-- ── Top-right: back to menu ──────────────────── -->
+    <button id="btn-menu">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M3 12L12 4l9 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M5 10v9a1 1 0 001 1h4v-4h4v4h4a1 1 0 001-1v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      MENU
+    </button>
+
+    <!-- ── Menu confirm modal ────────────────────────── -->
+    <div id="menu-confirm-modal">
+      <div class="confirm-box">
+        <div class="confirm-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M3 12L12 4l9 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M5 10v9a1 1 0 001 1h4v-4h4v4h4a1 1 0 001-1v-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="confirm-title">กลับหน้าหลัก?</div>
+        <div class="confirm-sub">ความคืบหน้าในเกมปัจจุบัน<br>จะไม่ถูกบันทึก</div>
+        <div class="confirm-divider"></div>
+        <div class="confirm-actions">
+          <button class="confirm-btn-cancel" id="confirm-cancel">เล่นต่อ</button>
+          <button class="confirm-btn-yes"    id="confirm-yes">ออกจากเกม</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Top-center: timer ────────────────────────── -->
     <div id="hud-tc">
       <div id="timer-block">
@@ -171,5 +199,16 @@
 
   <script type="module" src="renderer.js"></script>
   <script type="module" src="js/main.js"></script>
+  <script>
+    const _modal        = document.getElementById('menu-confirm-modal');
+    const _btnMenu      = document.getElementById('btn-menu');
+    const _btnCancel    = document.getElementById('confirm-cancel');
+    const _btnYes       = document.getElementById('confirm-yes');
+
+    _btnMenu.addEventListener('click',   () => _modal.classList.add('open'));
+    _btnCancel.addEventListener('click', () => _modal.classList.remove('open'));
+    _modal.addEventListener('click', e => { if (e.target === _modal) _modal.classList.remove('open'); });
+    _btnYes.addEventListener('click', () => { location.href = 'index.html'; });
+  </script>
 </body>
 </html>
